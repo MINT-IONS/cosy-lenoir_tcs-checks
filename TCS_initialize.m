@@ -8,6 +8,8 @@
 % %TCS maximum temp
 % TCS_maxtemp = 70;
 
+global com
+
 TCS_DURATION = 250; % ms
 TCS_RAMP_UP = 300; % °C/s
 TCS_reftemp = 62;
@@ -34,7 +36,7 @@ tcs2.set_stim_duration(TCS_DURATION, TCS_RAMP_UP);
 pause(0.1)
 tcs2.enable_temperature_feedback(100)
 pause(0.1)
-tcs2.write_serial('B')
-disp('PRESS ANY KEY TO OCNTINUE')
+tcs2.get_battery
+disp('PRESS ANY KEY TO CONTINUE')
 pause()
 clc

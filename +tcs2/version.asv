@@ -1,0 +1,12 @@
+function v = version
+% version  "tcs2" lib version - Benvenuto JACOB, UCLouvain (ben.jacob@uclouvain.be)
+%
+% v1.0  30 Nov 2021.
+%       Used by GeuterTask, Giulia Liberati's experiment.
+%
+% v2.0  Jul 2022. Modified for TactileWorkMem, Gabrielle Herbillon's exp.
+%       - Use with several TCS2s (!)
+%       - areas set_active_areas: enable/disable
+%       - checked on new TCS2s (TCSII-2, TCS
+
+v = '2.0';

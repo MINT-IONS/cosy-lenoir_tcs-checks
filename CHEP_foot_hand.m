@@ -1,19 +1,26 @@
-%help
-function result = Copy_of_CHEP_foot_hand_ratings_TCS_PROD(session_string, subject_string)
+%To launch enter into parenthesis (subject number, session number,
+%'baseline/poststim')
+
+function result = CHEP_foot_hand(subject_number, session_number, block_string)
+
+subject_number = 1;
+session_number = 1;
+block_string = 'baseline';
 
 rng shuffle
 
 %PARAMETERS
 %debug?
-debug = 1;
+debug = 0;
 
 %session string
 % session_string = 'SESSION2';
 %subject string
 % subject_string = 'SUBJECT15bis';
-
+%block
+%block = 'baseline'
 %CHEP
-CHEP = 'CHEP';
+%CHEP = 'CHEP';
 
 %initialize TCS
 if debug == 0
@@ -26,7 +33,7 @@ end
 TCS_reftemp = 62;
 
 result = [];
-filename = [subject_string ' ' session_string ' ' CHEP ' ' datestr(now,'mmmm-dd-yyyy-HH-MM-SS')];
+filename = strcat(['SUBJECT',num2str(subject_number),'_SESSION', num2str(session_number),'_',block_string,' ',datestr(now,'mmmm-dd-yyyy-HH-MM-SS')]);
 disp(filename)
 
 trial_count_hand = 0;
@@ -42,7 +49,8 @@ ok = 1;
 
 hand_ratings = {};
 foot_ratings = {};
-temp_feedback = {};
+hand_temp_feedback = {};
+foot_temp_feedback = {};
 
 while ok == 1
 
@@ -70,15 +78,16 @@ while ok == 1
             if debug == 0
                 tcs2.set_trigger_out(2,10)
                 tcs2.stimulate
-                temperature_feedback
-                temp_feedback{end+1} = temp_feed;
-                clear temp_feed temporary
+                get_temperature_feedback
+                foot_temp_feedback{end+1,1} = temperature_feedback;
+                clear temperature_feedback temporary
             end
         end
 
         %collect NRS response from participant
         NRS = input('Rating block of 5 stimuli on FOOT (0-100)','s');
         foot_ratings{end+1} = NRS;
+        result.foot_ratings = foot_ratings;
 
         %CHEP hand
 
@@ -98,16 +107,16 @@ while ok == 1
             if debug == 0
                 tcs2.set_trigger_out(1,10)
                 tcs2.stimulate
-                temperature_feedback
-                temp_feedback{end+1} = temp_feed;
-                clear temp_feed temporary
+                get_temperature_feedback
+                hand_temp_feedback{end+1} = temperature_feedback;
+                clear temperature_feedback temporary
             end
         end
 
         %collect NRS response from participant
         NRS = input('Rating block of 5 stimuli on HAND (0-100)','s');
         hand_ratings{end+1} = NRS;
-
+                
         disp(['BLOCK finished: ' num2str(block_count)])
 
         pause()
@@ -115,14 +124,16 @@ while ok == 1
     end
 
     ok = 0;
+    
+result.foot_temp_feedback = foot_temp_feedback;    
+result.foot_ratings = foot_ratings;
+result.hand_temp_feedback = hand_temp_feedback;
+result.hand_ratings = hand_ratings;
 
+save(filename,'result')
+    
 end
 
 disp('We are finished!')
-
-result.hand_ratings = hand_ratings;
-result.foot_ratings = foot_ratings;
-result.temp_feedback = temp_feedback;
-save(filename,'result')
 
 end
