@@ -28,11 +28,11 @@ color_plot = {[0,0.4470,0.7410],[0.85,0.325,0.098],[0.929,0.694,0.125],[0.494,0.
 xvalues = (1:length(temperature_feedback{1}))*10;
 hold on
 for c = 1:5
-   plot(xvalues,temperature_feedback{stimulation_number,c},'Color',color_plot{c},'LineWidth',1.5)
+   p('+c') = plot(xvalues,temperature_feedback{stimulation_number,c},'Color',color_plot{c},'LineWidth',1.5);
 end
 hold on
 % plot theoretical stimulation profil
-plot([10 100 260],[35 62 62],'--k')
+plot([10 ramp_up_time+10 TCS_DURATION+10],[TCS_neutraltemp TCS_reftemp TCS_reftemp],'--k')
 
 set(gca,'FontSize',12);
 set(gca,'TickDir','out')
@@ -41,5 +41,6 @@ L = legend('1','2','3','4','5');
 set(L,'Box','off')
 xlabel('time (ms)')
 ylabel('temperature (°C)')
-Box = 'off';
+ax = gca;
+ax.Box = 'off';
 set(gcf,'Color','w')
