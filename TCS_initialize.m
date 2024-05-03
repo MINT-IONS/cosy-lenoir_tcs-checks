@@ -14,8 +14,6 @@ TCS_DURATION = 250; % ms
 TCS_RAMP_UP = 300; % °C/s
 TCS_reftemp = 62;
 TCS_neutraltemp = 35;
-TCS_delta_temp = TCS_reftemp-TCS_neutraltemp;
-ramp_up_time = (TCS_delta_temp/TCS_RAMP_UP)*1000;
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 disp('Initializing TCS2...')

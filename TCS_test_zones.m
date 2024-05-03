@@ -17,7 +17,7 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% GUI for parameteres
+% GUI for parameters
 prompt = {'\fontsize{12} Test number :','\fontsize{12} Baseline temperature (째C) :', '\fontsize{12} Target temperature (째C) :',...
         '\fontsize{12} Plateau duration (ms) : ',...
         '\fontsize{12} Speed ramp-up (째C/s) : ', '\fontsize{12}  Speed ramp-down (째C/s) : ',...
@@ -26,21 +26,21 @@ prompt = {'\fontsize{12} Test number :','\fontsize{12} Baseline temperature (째C
 dlgtitle = 'Stimulation parameters';
 opts.Interpreter = 'tex';
 dims = repmat([1 60],10,1);
-definput = {'1', '32', '62', '100', '300', '30', ' ', ' ', ' ', ' '};
+definput = {'1', '32', '62', '200', '300', '30', ' ', ' ', ' ', ' '};
 
 info = inputdlg(prompt,dlgtitle,dims,definput,opts);
 test_num = str2double(info(1)); 
-baseline_temp = str2double(info(2)); % 째C
-target_temp = str2double(info(3)); % 째C
+baseline_temp = str2double(info(2)); % 캜
+target_temp = str2double(info(3)); % 캜
 duration = str2double(info(4)); % ms
-ramp_up = str2double(info(5)); % 째C/s
-ramp_down = str2double(info(6)); % 째C/s
+ramp_up = str2double(info(5)); % 캜/s
+ramp_down = str2double(info(6)); % 캜/s
 tcs = info(7);
 probe = strcat(info(8),'-',info(9));
 comments = info(10);
 
 % TCS_DURATION = 250; % ms
-% TCS_RAMP_UP = 300; % 째C/s
+% TCS_RAMP_UP = 300; % 캜/s
 % TCS_reftemp = 62;
 % TCS_neutraltemp = 35;
 % TCS_delta_temp = TCS_reftemp-TCS_neutraltemp;
@@ -64,16 +64,21 @@ savePath = chosen_dir;
 fidLog = fopen(fullfile(savePath,txt_filename),'w');
 fprintf(fidLog,'Experiment: %s \nDate and time: %s \nTest number: %s \nBaseline temperature: %s \nTarget temperature: %s \nTCS: %s; \nprobe: %s; \n\nNotes: %s \n\n',...
     experiment, timestamp, num2str(test_num), num2str(baseline_temp), num2str(target_temp), char(tcs), char(probe), char(comments));
-%%%%% store when done the parameters and diagnostic results %%%%%
+%%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
 
 % Initialization and communication
-COM = tcs2.find_com_port;
-tcs2.current_serial(COM)
+TCS_COM = tcs2.find_com_port;
+COM = tcs2.init_serial(TCS_COM);
 pause(0.1)
 
+% verbosity
+tcs2.verbose(2)
+
 % check battery level and confirm
-tcs2.write_serial('B')
-disp('BATTERY OK ? press any KEY')
+clc
+tcs2.get_battery
+disp('BATTERY OK ?')
+disp('press key to continue !')
 pause()
 
 % set active areas
@@ -81,30 +86,40 @@ tcs2.set_active_areas(1:5)
 pause(0.1)
 
 % set neutral baseline temperature
-tcs2.set_neutral_temperature(baserline_temp);
+tcs2.set_neutral_temperature(baseline_temp);
 pause(0.1)
 
-% set max temperature to 70째
-tcs2.write_serial('Ox70'); % hidden command to allow stimulation up to 70 째C !! Not available for all firwmare version.
+% set max temperature to 70 C�
+tcs2.write_serial('Ox70'); % hidden command to allow stimulation up to 70 C캜 !! Not available for all firwmare version.
 tcs2.write_serial('Om700');
 pause(0.1)
 
 % set stimulation
-tcs2.set_stim_duration(duration,ramp_up,ramp_down)
+% tcs2.set_stim_duration(duration,ramp_up,ramp_down)
+% pause(0.1)
+% tcs2.set_stim_temperature(target_temp)
+% pause(0.1)
+
+%%%%%%%%%%% alternative using profile
+tcs2.enable_temperature_profil(11111)
 pause(0.1)
-tcs2.set_stim_temperature(target_temp)
-pause(0.1)
+areas = 11111;
+num_seg = 3;
+seg_duration = [10 20 999];
+seg_end_temp = [target_temp*10 target_temp*10 baseline_temp*10];
+tcs2.set_stim_profil(areas,num_seg,seg_duration,seg_end_temp)
 
 % enable temperature feedback at 100 Hz
 tcs2.enable_temperature_feedback(100)
 pause(0.1)
 
+%%
 % send stimulus
 tcs2.stimulate
-pause(0.35)
+pause(4)
 % temperature_feedback
 temporary = tcs2.read_serial;              % Extract raw data from TCS
-pause(1)
+%%
 % preallocation for speed purposes
 temperature_feedback = cell(1,5); % Temperature data will be stored here.
 % disp('Extracting temperature feedback...')
@@ -129,20 +144,22 @@ color_plot = {[0,0.4470,0.7410],[0.85,0.325,0.098],[0.929,0.694,0.125],[0.494,0.
 xvalues = (1:length(temperature_feedback{1}))*10;
 hold on
 for c = 1:5
-   p("c"+c) = plot(xvalues,temperature_feedback{stimulation_number,c},'Color',color_plot{c},'LineWidth',1.5);
+   plot(xvalues,temperature_feedback{stimulation_number,c},'Color',color_plot{c},'LineWidth',1.5)
+   hold on
 end
 hold on
 % plot theoretical stimulation profil
-plot([10 ramp_up_time+10 TCS_DURATION+10],[TCS_neutraltemp TCS_reftemp TCS_reftemp],'--k')
+% plot([10 ramp_up_time+10 TCS_DURATION+10],[TCS_neutraltemp TCS_reftemp TCS_reftemp],'--k')
 
 % layout
-set(gca,'FontSize',12);
+set(gca,'FontSize',12)
+set(gca,'YTick',(baseline_temp:1:target_temp+3))
 set(gca,'TickDir','out')
-title(['temperature curve for ', 'stimulation at ',num2str(TCS_reftemp),'째C'],'FontSize',15);
-L = legend([p1 p2 p3 p4 p5 ],'1','2','3','4','5',' ');
+title(['temperature curve for ', 'stimulation at ',num2str(target_temp),'캜'],'FontSize',15);
+L = legend('1','2','3','4','5',' ');
 set(L,'Box','off')
 xlabel('time (ms)')
-ylabel('temperature (째C)')
+ylabel('temperature (캜)')
 ax = gca;
 ax.Box = 'off';
 set(gcf,'Color','w')

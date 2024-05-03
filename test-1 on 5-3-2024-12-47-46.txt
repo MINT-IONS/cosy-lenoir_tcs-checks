@@ -1,0 +1,10 @@
+Experiment: test_TCS2 
+Date and time: 5-3-2024-12-47-46 
+Test number: 1 
+Baseline temperature: 32 
+Target temperature: 62 
+TCS: A; 
+probe: A-T03; 
+
+Notes: sghjf 
+
