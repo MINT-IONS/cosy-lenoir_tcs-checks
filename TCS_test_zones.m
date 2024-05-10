@@ -18,26 +18,41 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % GUI for parameters
-prompt = {'\fontsize{12} Test number :','\fontsize{12} Baseline temperature (째C) :', '\fontsize{12} Target temperature (째C) :',...
-        '\fontsize{12} Plateau duration (ms) : ',...
-        '\fontsize{12} Speed ramp-up (째C/s) : ', '\fontsize{12}  Speed ramp-down (째C/s) : ',...
+prompt = {'\fontsize{12} Test number :','\fontsize{12} Baseline temperature (캜) :', '\fontsize{12} Target temperature (from 0 to 65캜) :',...
+        '\fontsize{12} Duration (rise time + plateau in ms) : ',...
+        '\fontsize{12} Speed ramp-up (캜/s) : ', '\fontsize{12}  Speed ramp-down (캜/s) : ',...
+        '\fontsize{12} For profil segment : Rise time (ms) : ',...
+        '\fontsize{12} For profil segment : Plateau (ms) : ',...
+        '\fontsize{12} For profil segment : Fall time (to baseline temperature in ms) : ',...
         '\fontsize{12} Which TCS (name) ?', '\fontsize{12} Which probe (name) ?','\fontsize{12} Which probe (type) ?',...
         '\fontsize{12} Enter comments'};
 dlgtitle = 'Stimulation parameters';
 opts.Interpreter = 'tex';
-dims = repmat([1 60],10,1);
-definput = {'1', '32', '62', '200', '300', '30', ' ', ' ', ' ', ' '};
+dims = repmat([1 80],13,1);
+definput = {'1', '32', '62', '200', '300', '30', ' ', ' ', ' ', 'A', 'A', 'T03', 'none'};
 
 info = inputdlg(prompt,dlgtitle,dims,definput,opts);
 test_num = str2double(info(1)); 
 baseline_temp = str2double(info(2)); % 캜
 target_temp = str2double(info(3)); % 캜
-duration = str2double(info(4)); % ms
+duration = str2double(info(4)); % rise time + plateau (ms)
 ramp_up = str2double(info(5)); % 캜/s
 ramp_down = str2double(info(6)); % 캜/s
-tcs = info(7);
-probe = strcat(info(8),'-',info(9));
-comments = info(10);
+rise_time = str2double(info(7));
+if isnan(rise_time)
+    rise_time = (target_temp-baseline_temp)/(ramp_up/1000);
+else
+end
+if isnan(plateau_time)
+
+else
+end
+
+plateau_time = str2double(info(8));
+fall_time = str2double(info(9));
+tcs = info(10);
+probe = strcat(info(11),'-',info(12));
+comments = info(13);
 
 % TCS_DURATION = 250; % ms
 % TCS_RAMP_UP = 300; % 캜/s
@@ -100,12 +115,14 @@ pause(0.1)
 % tcs2.set_stim_temperature(target_temp)
 % pause(0.1)
 
+
+
 %%%%%%%%%%% alternative using profile
 tcs2.enable_temperature_profil(11111)
 pause(0.1)
 areas = 11111;
 num_seg = 3;
-seg_duration = [10 20 999];
+seg_duration = [10 20 100];
 seg_end_temp = [target_temp*10 target_temp*10 baseline_temp*10];
 tcs2.set_stim_profil(areas,num_seg,seg_duration,seg_end_temp)
 
@@ -120,22 +137,31 @@ pause(4)
 % temperature_feedback
 temporary = tcs2.read_serial;              % Extract raw data from TCS
 %%
+% send stimulus
+% loop of 10 stimulations
+for stim_number = 1:10
+tcs2.stimulate
+pause(1)
+
+% read temperature_feedback
+temporary = tcs2.read_serial;
+
+ % prepare for storing of temperature data for 5 zones and successive stimulation
+temperature_feedback = cell(stim_number,5);
+
+% extract position of separators in the char temperature data
+temporary_index = strfind(temporary,'+');
+
 % preallocation for speed purposes
-temperature_feedback = cell(1,5); % Temperature data will be stored here.
-% disp('Extracting temperature feedback...')
-% tcs2.current_serial(com)
-temporary_index = strfind(temporary,'+');   % Extract position of temperature data from raw data
-temp_feed = zeros(1,length(temporary_index)); % Preallocation for speed purposes
+temp_feed = zeros(1,length(temporary_index));
 
-% Extract and store temperature data in a cell array
-for a = 1:length(temporary_index)
-    temp_feed(a) = str2double(temporary(temporary_index(a)+1:temporary_index(a)+4));
+% store temperature data in a cell array
+for idx = 1:length(temporary_index)
+    temp_feed(idx) = str2double(temporary(temporary_index(idx)+1:temporary_index(idx)+4));
 end
-
-% This should match the current stimulation number (probably the loop variable)
-stimulation_number = 1;
-for b = 1:5
-    temperature_feedback{stimulation_number,b} = temp_feed(b:5:end);
+% sort the temperatures according to each zones (1 to 5)
+for zones = 1:5
+    temperature_feedback{stim_number,zones} = temp_feed(zones:5:end);
 end
 
 % plot
@@ -143,15 +169,17 @@ F = figure('Position',[0,0,1000,900]);
 color_plot = {[0,0.4470,0.7410],[0.85,0.325,0.098],[0.929,0.694,0.125],[0.494,0.184,0.556],[0.466,0.674,0.188]};
 xvalues = (1:length(temperature_feedback{1}))*10;
 hold on
-for c = 1:5
-   plot(xvalues,temperature_feedback{stimulation_number,c},'Color',color_plot{c},'LineWidth',1.5)
+for zones = 1:5
+   plot(xvalues,temperature_feedback{stimulation_number,zones},'Color',color_plot{zones},'LineWidth',1.5)
    hold on
 end
 hold on
+
 % plot theoretical stimulation profil
 % plot([10 ramp_up_time+10 TCS_DURATION+10],[TCS_neutraltemp TCS_reftemp TCS_reftemp],'--k')
 
-% layout
+
+% plotting layout
 set(gca,'FontSize',12)
 set(gca,'YTick',(baseline_temp:1:target_temp+3))
 set(gca,'TickDir','out')
@@ -163,6 +191,8 @@ ylabel('temperature (캜)')
 ax = gca;
 ax.Box = 'off';
 set(gcf,'Color','w')
+
+
 
 
 
