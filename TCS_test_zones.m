@@ -2,6 +2,11 @@
 % This routine works with the package "+tcs2" version '2.0.2'
 % Material needed: 1 experiment PC (Matlab 2014a or later), 1 TCS2
 %
+% This routine work for stimulation profil typically starting from baseline
+% temperature to reach a target temperature and then back to baseline (3 segments in terms of stimulation profil)
+% for more complex profil and sinusoidal stimulation thoeretical
+% stimulation is disabled and only visuaal inspection is provided.
+%
 % First: fill in the GUI with stimulation parameters 
 % Second: follow instructions and deliver the stimulations onto the skin,
 % move the probe when you hear a bip
@@ -13,7 +18,7 @@
 % Medoc thermode T11", "MRI" T09 etc (see QSTLab website)
 %
 %
-% CÃ©dric Lenoir, COSY, IoNS, UCLouvain, May 2024
+% Cédric Lenoir, COSY, IoNS, UCLouvain, May 2024
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -38,18 +43,25 @@ target_temp = str2double(info(3)); % °C
 duration = str2double(info(4)); % rise time + plateau (ms)
 ramp_up = str2double(info(5)); % °C/s
 ramp_down = str2double(info(6)); % °C/s
-rise_time = str2double(info(7));
+rise_time = str2double(info(7)); % ms
+plateau_time = str2double(info(8)); % ms
+fall_time = str2double(info(9)); % ms
+% compute the different durations of the stimulation segments 
 if isnan(rise_time)
-    rise_time = (target_temp-baseline_temp)/(ramp_up/1000);
+    rise_time = abs((target_temp-baseline_temp))/(ramp_up/1000);
 else
 end
-if isnan(plateau_time)
-
+if isnan(plateau_time) && ~isnan(duration)
+    plateau_time = duration - rise_time;
 else
 end
-
-plateau_time = str2double(info(8));
-fall_time = str2double(info(9));
+if isnan(fall_time)
+    fall_time = abs((target_temp-baseline_temp))/(ramp_down/1000);
+end
+if isnan(duration)
+    duration = rise_time + plateau_time;
+else
+end
 tcs = info(10);
 probe = strcat(info(11),'-',info(12));
 comments = info(13);
@@ -121,21 +133,18 @@ pause(0.1)
 tcs2.enable_temperature_profil(11111)
 pause(0.1)
 areas = 11111;
-num_seg = 3;
-seg_duration = [10 20 100];
-seg_end_temp = [target_temp*10 target_temp*10 baseline_temp*10];
+num_seg = 4;
+% build the stimulation profil with parameters + add pre-stimulus baseline
+pre_stim_dur = 10;
+pre_stim_temp = baseline_temp;
+seg_duration = [pre_stim_dur rise_time/10 plateau_time/10 fall_time/10];
+seg_end_temp = [pre_stim_temp*10 target_temp*10 target_temp*10 baseline_temp*10];
 tcs2.set_stim_profil(areas,num_seg,seg_duration,seg_end_temp)
 
 % enable temperature feedback at 100 Hz
 tcs2.enable_temperature_feedback(100)
 pause(0.1)
 
-%%
-% send stimulus
-tcs2.stimulate
-pause(4)
-% temperature_feedback
-temporary = tcs2.read_serial;              % Extract raw data from TCS
 %%
 % send stimulus
 % loop of 10 stimulations
@@ -170,14 +179,17 @@ color_plot = {[0,0.4470,0.7410],[0.85,0.325,0.098],[0.929,0.694,0.125],[0.494,0.
 xvalues = (1:length(temperature_feedback{1}))*10;
 hold on
 for zones = 1:5
-   plot(xvalues,temperature_feedback{stimulation_number,zones},'Color',color_plot{zones},'LineWidth',1.5)
+   plot(xvalues,temperature_feedback{stim_number,zones},'Color',color_plot{zones},'LineWidth',1.5)
    hold on
 end
 hold on
 
-% plot theoretical stimulation profil
-% plot([10 ramp_up_time+10 TCS_DURATION+10],[TCS_neutraltemp TCS_reftemp TCS_reftemp],'--k')
+% plot theoretical stimulation profil (adding of 10 ms to account for
+% feedback/stimulation delay of the TCS2)
+x_val = [10 (pre_stim_dur*10) (pre_stim_dur*10+rise_time) (pre_stim_dur*10+rise_time+plateau_time) (pre_stim_dur*10+rise_time+plateau_time+fall_time)];
+y_val = [baseline_temp baseline_temp target_temp target_temp baseline_temp];
 
+plot(x_val,y_val,'--k')
 
 % plotting layout
 set(gca,'FontSize',12)
@@ -192,14 +204,108 @@ ax = gca;
 ax.Box = 'off';
 set(gcf,'Color','w')
 
+%% basic stats
+% prestimulus consistency
+clc
+for zones = 1:5
+    temp_base{1,zones} = temperature_feedback{1,zones}(1:10);
+    sd_base{1,zones} = std(temp_base{1,zones});
+    if sd_base{1,zones} == 0
+        disp(strcat(['zone ',num2str(zones),' baseline is steady']))
+    else
+        disp(strcat(['zone ',num2str(zones),' baseline is not constant!']))
+    end
+end
+
+% Ramp_up speed for each zone
+% By default 2% of tolerance below the desired ramp up speed is allowed,
+% this can be changed using the error parameter below
+error = 0.02;
+x_rampup = xvalues(1:rise_time/10+1);
+for zones = 1:5
+    rampup{1,zones} = temperature_feedback{1,zones}(10:(pre_stim_dur+rise_time/10));
+    mdlup{zones} = fitlm(x_rampup, rampup{1,zones});
+    slope_up(zones) = round(table2array(mdlup{zones}.Coefficients(2,1))*1000);
+    if table2array(mdlup{zones}.Coefficients(2,1)) >= ramp_up/1000*(1-error)
+        disp(strcat(['ramp up @ zones ',num2str(zones),' is reached: ',num2str(round(table2array(mdlup{zones}.Coefficients(2,1))*1000)),' °C/s']))
+    else
+        disp(strcat(['WARNING! ramp up @ zone ',num2str(zones),' is too low: ',num2str(round(table2array(mdlup{zones}.Coefficients(2,1))*1000)),' °C/s']))
+    end
+end
+
+% overshoot
+for zones = 1:5
+    overshoot(1,zones) = temperature_feedback{1,zones}(pre_stim_dur+1+rise_time/10);
+end
+
+%  target temperature
+for zones = 1:5
+    for bins = 1:(plateau_time/10)
+        temps(zones,bins) = temperature_feedback{zones}(pre_stim_dur+bins+rise_time/10);
+    end
+end
+
+for zones = 1:5
+    for bins = 1:(plateau_time/10)
+    sd_temps(zones,bins) = std(temps(zones,1:bins));
+    avg_temps(zones,bins) = mean(temps(zones,1:bins));
+    end
+end
+
+% std in reverse time during plateau
+bins = 1:(plateau_time/10);
+rev_bins = sort(bins,'descend');
+for zones = 1:5
+    for bins = 1:(plateau_time/10)
+    rev_sd_temps(zones,bins) = std(temps(zones,rev_bins(1:bins)));
+    rev_avg_temps(zones,bins) = mean(temps(zones,rev_bins(1:bins)));
+    end
+end
+
+% so we can estimate during how % of the plateau is the probe at target temperature
+
+% Ramp_down speed for each zone
+% By default 2% of tolerance below the desired ramp down speed is allowed,
+% this can be changed using the error parameter below
+error = 0.02;
+x_rampdwn = xvalues(1:fall_time/10+1);
+for zones = 1:5
+    rampdwn{1,zones} = temperature_feedback{1,zones}((10+pre_stim_dur+rise_time/10+plateau_time/10):(10+pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+    mdldwn{zones} = fitlm(x_rampdwn, rampdwn{1,zones});
+    slope_dwn(zones) = abs(round(table2array(mdldwn{zones}.Coefficients(2,1))*1000));
+    if abs(table2array(mdldwn{zones}.Coefficients(2,1))) - ramp_dwn/1000 < (1-error) 
+        disp(strcat(['ramp down @ zones ',num2str(zones),' is reached: ',num2str(round(table2array(mdlup{zones}.Coefficients(2,1))*1000)),' °C/s']))
+    else
+        disp(strcat(['WARNING! ramp down @ zone ',num2str(zones),' is too low: ',num2str(round(table2array(mdlup{zones}.Coefficients(2,1))*1000)),' °C/s']))
+    end
+end
 
 
+%% visualization target temps during plateau
+figure
+subplot(1,2,1)
+for zones = 1:5
+plot(sd_temps(zones,:))
+hold on
+end
+title('sd')
+subplot(1,2,2)
+for zones = 1:5
+plot(avg_temps(zones,:))
+hold on
+end
+title('avg')
 
-
-
-
-
-
-
-
-
+figure
+subplot(1,2,1)
+for zones = 1:5
+plot(rev_sd_temps(zones,:))
+hold on
+end
+title('rev sd')
+subplot(1,2,2)
+for zones = 1:5
+plot(rev_avg_temps(zones,:))
+hold on
+end
+title('rev avg')
