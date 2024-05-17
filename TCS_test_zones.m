@@ -34,7 +34,7 @@ prompt = {'\fontsize{12} Test number :','\fontsize{12} Baseline temperature (°C)
 dlgtitle = 'Stimulation parameters';
 opts.Interpreter = 'tex';
 dims = repmat([1 80],13,1);
-definput = {'1', '32', '62', '200', '300', '30', ' ', ' ', ' ', 'A', 'A', 'T03', 'none'};
+definput = {'1', '32', '62', '300', '300', '30', ' ', ' ', ' ', 'A', 'A', 'T03', 'none'};
 
 info = inputdlg(prompt,dlgtitle,dims,definput,opts);
 test_num = str2double(info(1)); 
@@ -174,7 +174,7 @@ for zones = 1:5
 end
 
 % plot
-F = figure('Position',[0,0,1000,900]);
+F = figure('color','w','Position',[0,0,1000,900]);
 color_plot = {[0,0.4470,0.7410],[0.85,0.325,0.098],[0.929,0.694,0.125],[0.494,0.184,0.556],[0.466,0.674,0.188]};
 xvalues = (1:length(temperature_feedback{1}))*10;
 hold on
@@ -202,7 +202,6 @@ xlabel('time (ms)')
 ylabel('temperature (°C)')
 ax = gca;
 ax.Box = 'off';
-set(gcf,'Color','w')
 
 %% basic stats
 % prestimulus consistency
@@ -232,6 +231,26 @@ for zones = 1:5
         disp(strcat(['WARNING! ramp up @ zone ',num2str(zones),' is too low: ',num2str(round(table2array(mdlup{zones}.Coefficients(2,1))*1000)),' °C/s']))
     end
 end
+
+%% plot linear regression for each zone
+
+% prepare theoretical values pre stim + ramp up
+x_valup = [10 (pre_stim_dur*10) (pre_stim_dur*10+rise_time)];
+y_valup = [baseline_temp baseline_temp target_temp];
+
+F2 = figure('color','w','Position',[0,0,1000,900]);
+for zones = 1:5
+    subplot(1,5,zones)
+    plot(xvalues(1:20),temperature_feedback{stim_number,zones}(1:(pre_stim_dur+rise_time/10)),'Color',color_plot{zones},'LineWidth',1.5)
+    hold on
+    plot(x_valup,y_valup,'--k')
+    hold on
+    plot(x_rampup+pre_stim_dur*10,mdlup{1,zones}.Fitted,'k')
+    title(strcat('zone-',num2str(zones)))
+end
+set(findobj(gcf,'type','axes'),'FontName','Arial','FontSize',12,'FontWeight','Normal', 'LineWidth', 0.5,'Box','off','xlim',[0 210],'ylim',[30 65]);
+
+
 
 % overshoot
 for zones = 1:5
