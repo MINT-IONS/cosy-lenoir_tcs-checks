@@ -85,7 +85,12 @@ savePath = chosen_dir;
 fidLog = fopen(fullfile(savePath,txt_filename),'w');
 fprintf(fidLog,'Experiment: %s \nDate and time: %s \nTest number: %s \nBaseline temperature: %s \nTarget temperature: %s \nTCS: %s; \nprobe: %s; \n\nNotes: %s \n\n',...
     experiment, timestamp, num2str(test_num), num2str(baseline_temp), num2str(target_temp), char(tcs), char(probe), char(comments));
+
 %%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
+%%%%% add serial number of the TCS and probe + firmware version !!! %%%%% 
+%%%%% 
+%%%%% 
+
 
 % Initialization and communication
 TCS_COM = tcs2.find_com_port;
