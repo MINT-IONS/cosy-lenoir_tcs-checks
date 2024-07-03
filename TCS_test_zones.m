@@ -81,6 +81,9 @@ current_folder = pwd;
 chosen_dir = uigetdir(current_folder);
 savePath = chosen_dir;
 
+
+
+
 % write in text file
 fidLog = fopen(fullfile(savePath,txt_filename),'w');
 fprintf(fidLog,'Experiment: %s \nDate and time: %s \nTest number: %s \nBaseline temperature: %s \nTarget temperature: %s \nTCS: %s; \nprobe: %s; \n\nNotes: %s \n\n',...
@@ -88,8 +91,8 @@ fprintf(fidLog,'Experiment: %s \nDate and time: %s \nTest number: %s \nBaseline 
 
 %%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
 %%%%% add serial number of the TCS and probe + firmware version !!! %%%%% 
-%%%%% 
-%%%%% 
+%%%%% TCS_help = tcs2.get_help;
+%%%%% serial_numbers = TCS_help(2:85);
 
 
 % Initialization and communication
