@@ -91,8 +91,8 @@ fprintf(fidLog,'Experiment: %s \nDate and time: %s \nTest number: %s \nBaseline 
 
 %%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
 %%%%% add serial number of the TCS and probe + firmware version !!! %%%%% 
-%%%%% TCS_help = tcs2.get_help;
-%%%%% serial_numbers = TCS_help(2:85);
+TCS_help = tcs2.get_help;
+serial_numbers = TCS_help(2:85);
 
 
 % Initialization and communication
@@ -101,7 +101,7 @@ COM = tcs2.init_serial(TCS_COM);
 pause(0.1)
 
 % verbosity
-tcs2.verbose(2)
+tcs2.verbose(1)
 
 % check battery level and confirm
 clc
