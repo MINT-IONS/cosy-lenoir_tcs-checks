@@ -68,25 +68,45 @@ tcs = info(10);
 probe = strcat(info(11),'-',info(12));
 comments = info(13);
 
+% add pre and post stimulus periods
+pre_stim_dur = 10;
+pst_stim_dur = 10;
+pre_stim_temp = baseline_temp;
+seg_duration = [pre_stim_dur rise_time/10 plateau_time/10 fall_time/10 pst_stim_dur];
+seg_end_temp = [pre_stim_temp*10 target_temp*10 target_temp*10 baseline_temp*10 baseline_temp*10];
+
 % create and save outcomes in .mat file
 clockVal = clock; % Current date and time as date vector. [year month day hour minute seconds]
 timestamp = sprintf('%d-%d-%d-%d-%d-%.0f',clockVal(2),clockVal(3),clockVal(1),clockVal(4),clockVal(5),clockVal(6));
 experiment = 'test_TCS2';
 % make unique texte and mat filenames
 txt_filename = strcat(['TCS2_test_',sprintf('%s', num2str(test_num)), '_', sprintf('%s', timestamp),'.txt']);
-mat_filename = strcat(['TCS2_test_',sprintf('%s', num2str(test_num)), '_', sprintf('%s', timestamp),'.txt']);
+mat_filename = strcat(['TCS2_test_',sprintf('%s', num2str(test_num)), '_', sprintf('%s', timestamp),'.mat']);
 % folder name to be done
 current_folder = pwd;
 % choose where to save the outcomes
 chosen_dir = uigetdir(current_folder);
 savePath = chosen_dir;
 
-% write in text file
-fidLog = fopen(fullfile(savePath,txt_filename),'w');
-fprintf(fidLog,'Experiment: %s \nDate and time: %s \nTest number: %s \nBaseline temperature: %s \nTarget temperature: %s \nTCS: %s; \nprobe: %s; \n\nNotes: %s \n\n',...
-    experiment, timestamp, num2str(test_num), num2str(baseline_temp), num2str(target_temp), char(tcs), char(probe), char(comments));
+% % write in text file
+% fidLog = fopen(fullfile(savePath,txt_filename),'w');
+% fprintf(fidLog,'Experiment: %s \nDate and time: %s \nTest number: %s \nBaseline temperature: %s \nTarget temperature: %s \nTCS: %s; \nprobe: %s; \n\nNotes: %s \n\n',...
+%     experiment, timestamp, num2str(test_num), num2str(baseline_temp), num2str(target_temp), char(tcs), char(probe), char(comments));
 
 %%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
+test = struct;
+test.param.pre_stim_dur = pre_stim_dur*10;
+test.param.pst_stim_dur = pst_stim_dur*10;
+test.param.pre_stim_temp = pre_stim_temp;
+test.param.seg_duration = seg_duration;
+test.param.seg_end_temp = seg_end_temp;
+test.param.target_temp = target_temp;
+test.param.duration = duration;
+test.param.ramp_up = ramp_up;
+test.param.ramp_down = ramp_down;
+test.param.rise_time = rise_time;
+test.param.plateau_time = plateau_time;
+test.param.fall_time = fall_time;
 
 % Initialization and communication
 TCS_COM = tcs2.find_com_port;
@@ -127,11 +147,6 @@ pause(0.1)
 areas = 11111;
 num_seg = 5;
 % build the stimulation profil with parameters + add pre-stimulus at baseline temeprature during 100 ms and post-stimulus at baseline temperature during 100 ms 
-pre_stim_dur = 10;
-pst_stim_dur = 10;
-pre_stim_temp = baseline_temp;
-seg_duration = [pre_stim_dur rise_time/10 plateau_time/10 fall_time/10 pst_stim_dur];
-seg_end_temp = [pre_stim_temp*10 target_temp*10 target_temp*10 baseline_temp*10 baseline_temp*10];
 tcs2.set_stim_profil(areas,num_seg,seg_duration,seg_end_temp)
 
 % enable temperature feedback at 100 Hz
@@ -142,10 +157,13 @@ pause(0.1)
 % send stimulus
 % loop of 10 stimulations
 stim_number = 10;
+zones = 5;
 % prepare for storing of temperature data for 5 zones and successive 10 stimulations
-temperature_feedback = cell(stim_number,5);
+temperature_feedback = cell(stim_number,zones);
 
 for stim_num = 1:stim_number
+    clc
+    disp('Attention ! / be ready !')
     pause(2)
     tcs2.stimulate
     disp(strcat(['stimulation #',num2str(stim_num),' sent'])) 
@@ -161,7 +179,7 @@ for stim_num = 1:stim_number
     % read temperature_feedback
     temporary = tcs2.read_serial;
     pause(2)
-    tcs2.clear_serial
+    tcs2.clear_serial;
     
     % extract position of separators in the char temperature data
     temporary_index = strfind(temporary,'+');
@@ -179,36 +197,11 @@ for stim_num = 1:stim_number
     end
     clear temporary temporary_index temp_feed 
 end
-%% plot
-% F1 = figure('color','w','Position',[0,0,1000,900]);
-% color_plot = {[0,0.4470,0.7410],[0.85,0.325,0.098],[0.929,0.694,0.125],[0.494,0.184,0.556],[0.466,0.674,0.188]};
-% xvalues = (1:length(temperature_feedback{stim_num,1}))*10;
-% 
-% % plot theoretical stimulation profil (adding of 10 ms to account for
-% % feedback/stimulation delay of the TCS2)
-% x_val = [10 (pre_stim_dur*10) (pre_stim_dur*10+rise_time) (pre_stim_dur*10+rise_time+plateau_time)...
-%     (pre_stim_dur*10+rise_time+plateau_time+fall_time) (pre_stim_dur*10+rise_time+plateau_time+fall_time+pst_stim_dur*10)];
-% y_val = [baseline_temp baseline_temp target_temp target_temp baseline_temp baseline_temp];
-% 
-% plot(x_val,y_val,'--m','LineWidth',1.5)
-% 
-% hold on
-% for zones = 1:5
-%    plot(xvalues,temperature_feedback{stim_num,zones},'Color',color_plot{zones},'LineWidth',1.5)
-%    hold on
-% end
-% 
-% % plotting layout
-% set(gca,'FontSize',12)
-% set(gca,'YTick',(baseline_temp:1:target_temp+3))
-% set(gca,'TickDir','out')
-% title(['temperature curve for ', 'stimulation at ',num2str(target_temp),'°C'],'FontSize',15);
-% L = legend('theoretical','zone 1','zone 2','zone 3','zone 4','zone 5');
-% set(L,'Box','off')
-% xlabel('time (ms)')
-% ylabel('temperature (°C)')
-% ax = gca;
-% ax.Box = 'off';
+
+test.results.feedback = temperature_feedback;
+
+%% plot stimulus profil
+% see sections in TCS_test_zones_plot
 
 %% Checks
 % pre-stimulus consistency
@@ -235,6 +228,10 @@ end
 % find the zone with highest variability
 [avg_sd_zone_pre, zone_pre] = max(avg_sd_base_pre);
 
+test.results.avg_sd_base_pre = avg_sd_base_pre;
+test.results.mean_base_pre = mean_base_pre;
+test.results.zone_pre_variability = [avg_sd_zone_pre, zone_pre];
+
 % line beak in command window
 disp(' ')
 
@@ -243,10 +240,12 @@ for stim_num = 1:stim_number
     for zones = 1:5
         temp_base_pst{stim_num,zones} = temperature_feedback{stim_num,zones}(end-9:end);
         sd_base_pst(stim_num,zones) = std(temp_base_pst{stim_num,zones});
-        avg_sd_base_pst(1,zones) = mean(sd_base_pst(:,zones));
+        mean_base_pst(1,zones) = mean(temp_base_pst{stim_num,zones});
     end
 end
-
+for zones =1:5
+    avg_sd_base_pst(1,zones) = mean(sd_base_pst(:,zones));
+end
 % warning per zone
 for zones = 1:5
     if avg_sd_base_pst(1,zones) <= 0.5 % 0.5°C precision of the instrument
@@ -259,6 +258,10 @@ end
 % find the zone with highest variability
 [avg_sd_zone_pst, zone_pst] = max(avg_sd_base_pst);
 
+test.results.avg_sd_base_pst = avg_sd_base_pst;
+test.results.mean_base_pst = mean_base_pst;
+test.results.zone_pst_variability = [avg_sd_zone_pst, zone_pst];
+
 % line beak in command window
 disp(' ')
 
@@ -266,49 +269,31 @@ disp(' ')
 % By default 2% of tolerance below the desired ramp up speed is allowed,
 error = 0.02;
 % x values for plotting
+xvalues = (1:length(temperature_feedback{stim_num,zones}))*10;
 x_rampup = xvalues(1:rise_time/10+1);
 for stim_num = 1:stim_number
     for zones = 1:5
         rampup{stim_num,zones} = temperature_feedback{stim_num,zones}(10:(pre_stim_dur+rise_time/10));
         mdlup{stim_num,zones} = fitlm(x_rampup, rampup{stim_num,zones});
         slope_up(stim_num,zones) = round(table2array(mdlup{stim_num,zones}.Coefficients(2,1))*1000);
-        avg_slope_up(1,zones) = mean(slope_up(:,zones));
-        if table2array(mdlup{stim_num,zones}.Coefficients(2,1)) >= ramp_up/1000*(1-error)
-            disp(strcat(['ramp up @ zones ',num2str(zones),' is reached: ',num2str(round(table2array(mdlup{zones}.Coefficients(2,1))*1000)),' °C/s']))
-        else
-            disp(strcat(['WARNING! ramp up @ zone ',num2str(zones),' is too low: ',num2str(round(table2array(mdlup{zones}.Coefficients(2,1))*1000)),' °C/s']))
-        end
     end
 end
-%% plot linear regression for each zone
+for zones = 1:5
+    avg_slope_up(1,zones) = mean(slope_up(:,zones));
+    if avg_slope_up(1,zones) >= ramp_up*(1-error)
+        disp(strcat(['ramp up @ zones ',num2str(zones),' is reached: ',num2str(round(avg_slope_up(1,zones))),' °C/s']))
+    else
+        disp(strcat(['WARNING! ramp up @ zone ',num2str(zones),' is too low: ',num2str(round(avg_slope_up(1,zones))),' °C/s']))
+    end
+end
 
-% prepare theoretical values pre stim + ramp up
-% x_valup = [10 (pre_stim_dur*10) (pre_stim_dur*10+rise_time)];
-% y_valup = [baseline_temp baseline_temp target_temp];
-% 
-% % plot linear regression for rampups
-% F2 = figure('color','w','Position',[0,0,1000,900]);
-% for zones = 1:5
-%     subplot(1,5,zones)
-%     % plot the estimated data
-%     plot(x_rampup+pre_stim_dur*10,mdlup{1,zones}.Fitted,'k','LineWidth',3)
-%     hold on
-%    % plot the actual data
-%     plot(xvalues(1:pre_stim_dur+rise_time/10),temperature_feedback{stim_number,zones}(1:(pre_stim_dur+rise_time/10)),'Color',color_plot{zones},'LineWidth',2)
-%     hold on
-%     % plot the theoretical values
-%     plot(x_valup,y_valup,'--m','LineWidth',1.5)
-%     title(strcat('zone-',num2str(zones)),'Color',color_plot{zones})
-%     if zones == 1
-%         xlabel('time (ms)')
-%         ylabel('temperature (°C)')
-%     else
-%         xlabel('time (ms)')
-%     end
-% end
-% set(findobj(gcf,'type','axes'),'FontName','Arial','FontSize',12,'FontWeight','Normal', 'LineWidth', 0.5,'Box','off','xlim',[0 (pre_stim_dur*10+rise_time+10)],'ylim',[baseline_temp-2 target_temp+5]);
-% legend('estimated','measurement','theoretical','Location','best','box','off')
-% sgtitle('ramp up','FontWeight','Bold')
+% find the zone with highest variability
+[min_slope_up, zone_up] = min(avg_slope_up);
+
+test.results.avg_slope_up = avg_slope_up;
+test.results.zone_min_slope_up = [min_slope_up, zone_up];
+
+%% plot linear regression for each zone
 
 %% overshoot
 for stim_num = 1:stim_number
@@ -324,48 +309,34 @@ for zones = 1:5
     else
     end
 end
-        
+
+test.results.avg_overshoot = avg_overshoot;
+
 %%  target temperature
 for stim_num = 1:stim_number
     for zones = 1:5
-        for bins = 1:(plateau_time/10)
-            plateau_temp{stim_num,zones}(bins) = temperature_feedback{stim_num,zones}(pre_stim_dur+bins+rise_time/10);
-            sd_plateau_temp(1,zones) = std(plateau_temp{stim_num,zones});
-            avg_plateau_temp(1,zones) = mean(plateau_temp{stim_num,zones});
+        for bins = 1:(plateau_time/10)-1 % excluding overshoot
+            plateau_temp{stim_num,zones}(bins) = temperature_feedback{stim_num,zones}(pre_stim_dur+bins+1+rise_time/10);
+            sd_plateau_temp(stim_num,zones) = std(plateau_temp{stim_num,zones});
+            avg_plateau_temp(stim_num,zones) = mean(plateau_temp{stim_num,zones});
         end
     end
 end
-
-% std in reverse time during plateau
-bins = 1:(plateau_time/10);
-rev_bins = sort(bins,'descend');
-for stim_num = 1:stim_number
-    for zones = 1:5
-        for bins = 1:(plateau_time/10)
-            rev_sd_temps{stim_num,zones}(bins) = std(plateau_temp{stim_num,zones}(rev_bins(1:bins)));
-            rev_avg_temps{stim_num,zones}(bins) = mean(plateau_temp{stim_num,zones}(rev_bins(1:bins)));
-        end
-    end
+for zones = 1:5
+    avg_sd_plateau_temp(1,zones) = round(mean(sd_plateau_temp(:,zones)),2);
+    avg_stim_plateau_temp(1,zones) = round(mean(avg_plateau_temp(:,zones)),1);
 end
 
-% reverse plateau temperatures
-for stim_num = 1:stim_number
-    for zones = 1:5
-        for bins = 1:(plateau_time/10)
-            rev_plateau_temp{stim_num,zones}(bins) = plateau_temp{stim_num,zones}(rev_bins(bins));
-        end
-    end
-end
+% find the zone with highest variability
+[avg_sd_zone_plateau, zone_plat] = max(avg_sd_plateau_temp);
+[min_avg_temp_zone_plateau, zone_temp_min] = min(avg_stim_plateau_temp);
+[max_avg_temp_zone_plateau, zone_temp_max] = max(avg_stim_plateau_temp);
 
-% so we can estimate the percentage of plateau duration where the probe is at constant target temperature
-
-for bins = 1:(plateau_time/10)
-    temp_idx(1,bins) = find(rev_plateau_temp{stim_num,zones} == target_temp-0.1...
-        | rev_plateau_temp{stim_num,zones} == target_temp+0.1...
-        | rev_plateau_temp{stim_num,zones} == target_temp);
-end
-% and the duration when it is considered to be at target temperature
-
+test.results.avg_sd_plateau_temp = avg_sd_plateau_temp;
+test.results.avg_stim_plateau_temp = avg_stim_plateau_temp;
+test.results.avg_sd_zone_plateau = avg_sd_zone_plateau;
+test.results.min_avg_temp_zone_plateau = min_avg_temp_zone_plateau;
+test.results.max_avg_temp_zone_plateau = max_avg_temp_zone_plateau;
 
 %% Ramp_down speed for each zone
 % By default 2% of tolerance below the desired ramp down speed is allowed,
@@ -376,80 +347,35 @@ x_rampdwn = xvalues(1:fall_time/10+1);
 % line beak in command window
 disp(' ')
 
+for stim_num = 1:stim_number
+    for zones = 1:5
+        rampdwn{stim_num,zones} = temperature_feedback{stim_num,zones}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+        mdldwn{stim_num,zones} = fitlm(x_rampdwn, rampdwn{stim_num,zones});
+        slope_dwn(stim_num,zones) = abs(round(table2array(mdldwn{stim_num,zones}.Coefficients(2,1))*1000));
+    end
+end
 for zones = 1:5
-    rampdwn{1,zones} = temperature_feedback{1,zones}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
-    mdldwn{zones} = fitlm(x_rampdwn, rampdwn{1,zones});
-    slope_dwn(zones) = abs(round(table2array(mdldwn{zones}.Coefficients(2,1))*1000));
-    if abs(table2array(mdldwn{zones}.Coefficients(2,1))) - ramp_down/1000 < (1-error) 
-        disp(strcat(['ramp down @ zones ',num2str(zones),' is reached: ',num2str(round(table2array(mdldwn{zones}.Coefficients(2,1))*1000)),' °C/s']))
+    avg_slope_dwn(1,zones) = mean(slope_dwn(:,zones));
+    if avg_slope_dwn(1,zones) >= ramp_down*(1-error)
+        disp(strcat(['ramp down @ zones ',num2str(zones),' is reached: ',num2str(round(avg_slope_dwn(1,zones))),' °C/s']))
     else
-        disp(strcat(['WARNING! ramp down @ zone ',num2str(zones),' is too low: ',num2str(round(table2array(mdldwn{zones}.Coefficients(2,1))*1000)),' °C/s']))
+        disp(strcat(['WARNING! ramp down @ zone ',num2str(zones),' is too low: ',num2str(round(avg_slope_dwn(1,zones))),' °C/s']))
     end
 end
 
-%% plot linear regression for rampdowns
-% prepare theoretical values pre stim + ramp up
-x_valdwn = [1 fall_time];
-y_valdwn = [target_temp baseline_temp];
+test.results.avg_slope_dwn = avg_slope_dwn;
 
-F3 = figure('color','w','Position',[0,0,1000,900]);
-for zones = 1:5
-    subplot(1,5,zones)
-    % plot the estimated data
-    plot(x_rampdwn,mdldwn{1,zones}.Fitted,'k','LineWidth',3)
-    hold on
-    % plot actual data
-    plot(x_rampdwn,rampdwn{1,zones},'Color',color_plot{zones},'LineWidth',2)
-     hold on
-    % plot the theoretical values
-    plot(x_valdwn,y_valdwn,'--m','LineWidth',1.5)
-    title(strcat('zone-',num2str(zones)),'Color',color_plot{zones})
-    if zones == 1
-        xlabel('time (ms)')
-        ylabel('temperature (°C)')
-    else
-        xlabel('time (ms)')
-    end
-end
-set(findobj(gcf,'type','axes'),'FontName','Arial','FontSize',12,'FontWeight','Normal', 'LineWidth', 0.5,'Box','off','xlim',[0 fall_time+10],'ylim',[baseline_temp-2 target_temp+5]);
-legend('estimated','measurement','theoretical','Location','best','box','off')
-sgtitle('ramp down','FontWeight','Bold')
+%% save
+
+% write in text file
+fidLog = fopen(fullfile(savePath,txt_filename),'w');
+fprintf(fidLog,'TEST: %s \n\nDate and time: %s \n\nTest number: %s \n\nTCS: %s \n\nfirmware & probe: %s \n\nBaseline temperature: %s°C \n\nTarget temperature: %s°C \n\nRamp-up speed: %s°C/s \n\nRamp-down: %s°C/s \n\nNotes: %s \n\n',...
+    experiment, timestamp, num2str(test_num), char(tcs), serial_numbers, num2str(baseline_temp), num2str(target_temp), num2str(ramp_up), num2str(ramp_down), char(comments));
+
+% save outcomes of the test
+save(mat_filename, 'test')
 
 
 
 
 
-%% visualization target temps during plateau
-figure
-subplot(1,2,1)
-for zones = 1:5
-plot(sd_temps(zones,:))
-hold on
-end
-title('sd')
-subplot(1,2,2)
-for zones = 1:5
-plot(avg_temps(zones,:))
-hold on
-end
-title('avg')
-
-figure
-subplot(1,3,1)
-for zones = 1:5
-plot(rev_sd_temps(zones,:))
-hold on
-end
-title('rev sd')
-subplot(1,3,2)
-for zones = 1:5
-plot(rev_avg_temps(zones,:))
-hold on
-end
-title('rev avg')
-subplot(1,3,3)
-for zones = 1:5
-plot(rev_temps(zones,:))
-hold on
-end
-title('rev temps')
