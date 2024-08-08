@@ -64,7 +64,7 @@ if isnan(duration)
     duration = rise_time + plateau_time;
 else
 end
-tcs = info(10);
+tcs = char(info(10));
 probe = strcat(info(11),'-',info(12));
 comments = info(13);
 
@@ -80,8 +80,8 @@ clockVal = clock; % Current date and time as date vector. [year month day hour m
 timestamp = sprintf('%d-%d-%d-%d-%d-%.0f',clockVal(2),clockVal(3),clockVal(1),clockVal(4),clockVal(5),clockVal(6));
 experiment = 'test_TCS2';
 % make unique texte and mat filenames
-txt_filename = strcat(['TCS2_test_',sprintf('%s', num2str(test_num)), '_', sprintf('%s', timestamp),'.txt']);
-mat_filename = strcat(['TCS2_test_',sprintf('%s', num2str(test_num)), '_', sprintf('%s', timestamp),'.mat']);
+txt_filename = strcat(['TCS2_',sprintf('%s', tcs),'_test_',sprintf('%s', num2str(test_num)), '_', sprintf('%s', timestamp),'.txt']);
+mat_filename = strcat(['TCS2_',sprintf('%s', tcs),'_test_',sprintf('%s', num2str(test_num)), '_', sprintf('%s', timestamp),'.mat']);
 % folder name to be done
 current_folder = pwd;
 % choose where to save the outcomes
@@ -218,11 +218,13 @@ for zones =1:5
 end
 % warning per zone
 for zones = 1:5
-    if avg_sd_base_pre(1,zones) <= 0.5 % std should be close to device precision
-        disp(strcat(['zone ',num2str(zones),' baseline pre stimulus is steady']))
-    else
-        disp(strcat(['WARNING ! zone ',num2str(zones),' baseline pre stimulus is not constant!']))
-    end
+    % if avg_sd_base_pre(1,zones) <= 0.5 % std should be close to device precision
+        mess_baseline_pre{zones} = strcat(['zone ',num2str(zones),' baseline pre stimulus is steady']);
+        disp(mess_baseline_pre{zones});
+    % else
+         mess_baseline_pre{zones} = strcat(['WARNING ! zone ',num2str(zones),' baseline pre stimulus is not constant!']);
+        disp(mess_baseline_pre{zones});
+    % end
 end
 
 % find the zone with highest variability
@@ -249,9 +251,11 @@ end
 % warning per zone
 for zones = 1:5
     if avg_sd_base_pst(1,zones) <= 0.5 % 0.5°C precision of the instrument
-        disp(strcat(['zone ',num2str(zones),' baseline post stimulus is steady']))
+        mess_baseline_pst{zones} = strcat(['zone ',num2str(zones),' baseline post stimulus is steady']);
+        disp(mess_baseline_pst{zones})
     else
-        disp(strcat(['WARNING! zone ',num2str(zones),' baseline post stimulus is not constant!']))
+        mess_baseline_pst{zones} = strcat(['WARNING! zone ',num2str(zones),' baseline post stimulus is not constant!']);
+        disp(mess_baseline_pst{zones})
     end
 end
 
@@ -281,9 +285,11 @@ end
 for zones = 1:5
     avg_slope_up(1,zones) = mean(slope_up(:,zones));
     if avg_slope_up(1,zones) >= ramp_up*(1-error)
-        disp(strcat(['ramp up @ zones ',num2str(zones),' is reached: ',num2str(round(avg_slope_up(1,zones))),' °C/s']))
+        mess_rampup{zones} = strcat(['ramp up @ zones ',num2str(zones),' is reached: ',num2str(round(avg_slope_up(1,zones))),' °C/s']);
+        disp(mess_rampup{zones})
     else
-        disp(strcat(['WARNING! ramp up @ zone ',num2str(zones),' is too low: ',num2str(round(avg_slope_up(1,zones))),' °C/s']))
+        mess_rampup{zones} = strcat(['WARNING! ramp up @ zone ',num2str(zones),' is too low: ',num2str(round(avg_slope_up(1,zones))),' °C/s']);
+        disp(mess_rampup{zones})
     end
 end
 
@@ -305,8 +311,10 @@ end
 % warning
 for zones = 1:5
     if avg_overshoot(1,zones)- target_temp > 1
-        disp(strcat(['WARNING: max temperature exceeds target temperature @ zone ',num2str(zones)]));
+        mess_overshoot{zones} = strcat(['WARNING: max temperature exceeds target temperature @ zone ',num2str(zones)]);
+        disp(mess_overshoot{zones});
     else
+        mess_overshoot{zones} = 'OK';
     end
 end
 
@@ -357,20 +365,70 @@ end
 for zones = 1:5
     avg_slope_dwn(1,zones) = mean(slope_dwn(:,zones));
     if avg_slope_dwn(1,zones) >= ramp_down*(1-error)
-        disp(strcat(['ramp down @ zones ',num2str(zones),' is reached: ',num2str(round(avg_slope_dwn(1,zones))),' °C/s']))
+        mess_rampdwn{zones} = strcat(['ramp down @ zones ',num2str(zones),' is reached: ',num2str(round(avg_slope_dwn(1,zones))),' °C/s']);
+        disp(mess_rampdwn{zones})
     else
-        disp(strcat(['WARNING! ramp down @ zone ',num2str(zones),' is too low: ',num2str(round(avg_slope_dwn(1,zones))),' °C/s']))
+        mess_rampdwn{zones} = strcat(['WARNING! ramp down @ zone ',num2str(zones),' is too low: ',num2str(round(avg_slope_dwn(1,zones))),' °C/s']);
+        disp(mess_rampdwn{zones})
     end
 end
 
 test.results.avg_slope_dwn = avg_slope_dwn;
 
 %% save
-
-% write in text file
+% write param in text file
 fidLog = fopen(fullfile(savePath,txt_filename),'w');
 fprintf(fidLog,'TEST: %s \n\nDate and time: %s \n\nTest number: %s \n\nTCS: %s \n\nfirmware & probe: %s \n\nBaseline temperature: %s°C \n\nTarget temperature: %s°C \n\nRamp-up speed: %s°C/s \n\nRamp-down: %s°C/s \n\nNotes: %s \n\n',...
-    experiment, timestamp, num2str(test_num), char(tcs), serial_numbers, num2str(baseline_temp), num2str(target_temp), num2str(ramp_up), num2str(ramp_down), char(comments));
+    experiment, timestamp, num2str(test_num), tcs, serial_numbers, num2str(baseline_temp), num2str(target_temp), num2str(ramp_up), num2str(ramp_down), char(comments));
+
+% write results in text file
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'--------------- \n RESULTS \n baseline pre stim:');
+for zones = 1:5
+    fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+    fprintf(fidLog,'\n %s',mess_baseline_pre{zones});
+end
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n')
+
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n baseline post stim:');
+for zones = 1:5
+    fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+    fprintf(fidLog,'\n %s',mess_baseline_pst{zones});
+end
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n')
+
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n ramp up:');
+for zones = 1:5
+    fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+    fprintf(fidLog,'\n %s',mess_rampup{zones});
+end
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n')
+
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n overshoot:');
+for zones = 1:5
+    fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+    fprintf(fidLog,'\n %s',mess_overshoot{zones});
+end
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n')
+
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n ramp down:');
+for zones = 1:5
+    fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+    fprintf(fidLog,'\n %s',mess_rampdwn{zones});
+end
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n')
+
+
+
 
 % save outcomes of the test
 save(mat_filename, 'test')
