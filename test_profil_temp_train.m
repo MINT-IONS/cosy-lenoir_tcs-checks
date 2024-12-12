@@ -8,7 +8,7 @@ areas = 11000; % zones 1 and 2
 num_seg = 3; % ramp-up + plateau + ramp down
 seg_duration = [10 10 80]; % in tens of ms
 % set temperatures depending on right and left temperature obtained from the calibration task
-seg_end_temp(:,1) = [62*10 62*10 320]; % in 1/10°C
+seg_end_temp(:,1) = [62*10 62*10 32*10]; % in 1/10°C
 seg_end_temp(:,2) = [62.5*10 62.5*10 320];
 
 TCS2_NUMBER = [1 2]; % LEFT -> 1; RIGHT -> 2 (% second COM port encoded in the variable " TCS2_COMS" in the script hypnoanalgesia_init)
