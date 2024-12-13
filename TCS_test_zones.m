@@ -51,7 +51,12 @@ fall_time = str2double(info(9)); % ms
 % compute the different durations of the stimulation segments 
 if isnan(rise_time)
     rise_time = abs((target_temp-baseline_temp))/(ramp_up/1000);
-else
+elseif ~isnan(rise_time)
+    ramp_up = (abs((target_temp-baseline_temp))/rise_time)*1000;
+    if ramp_up > 300
+        disp('Heating ramp too high!')
+        return
+    end
 end
 if isnan(plateau_time) && ~isnan(duration)
     plateau_time = duration - rise_time;
@@ -59,17 +64,15 @@ else
 end
 if isnan(fall_time)
     fall_time = abs((target_temp-baseline_temp))/(ramp_down/1000);
+elseif ~isnan(fall_time)
+    ramp_down = (abs((target_temp-baseline_temp))/fall_time)*1000;
+    if ramp_down > 300
+        disp('Cooling ramp too high!')
+        return
+    end
 end
 if isnan(duration)
     duration = rise_time + plateau_time;
-else
-end
-if isnan(ramp_up)
-    ramp_up = abs((target_temp-baseline_temp))/rise_time;
-else
-end
-if isnan(ramp_down)
-    ramp_down = abs((target_temp-baseline_temp))/fall_time;
 else
 end
 
