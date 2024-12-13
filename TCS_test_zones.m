@@ -33,7 +33,7 @@ prompt = {'\fontsize{12} Test number :','\fontsize{12} Baseline temperature (°C)
         '\fontsize{12} For profil segment : Fall time (to baseline temperature in ms) : ',...
         '\fontsize{12} Which TCS (name) ?', '\fontsize{12} Which probe (name) ?','\fontsize{12} Which probe (type) ?',...
         '\fontsize{12} Enter comments'};
-dlgtitle = 'Stimulation parameters';
+dlgtitle = 'Heating stimulation parameters';
 opts.Interpreter = 'tex';
 dims = repmat([1 80],13,1);
 definput = {'1', '32', '62', '300', '300', '30', ' ', ' ', ' ', 'A', 'A', 'T03', 'none'};
@@ -64,6 +64,15 @@ if isnan(duration)
     duration = rise_time + plateau_time;
 else
 end
+if isnan(ramp_up)
+    ramp_up = abs((target_temp-baseline_temp))/rise_time;
+else
+end
+if isnan(ramp_down)
+    ramp_down = abs((target_temp-baseline_temp))/fall_time;
+else
+end
+
 tcs = char(info(10));
 probe = strcat(info(11),'-',info(12));
 comments = info(13);
@@ -110,8 +119,9 @@ test.param.fall_time = fall_time;
 
 % Initialization and communication
 TCS_COM = tcs2.find_com_port;
+pause(0.001)
 COM = tcs2.init_serial(TCS_COM);
-pause(0.1)
+pause(0.001)
 
 % verbosity
 tcs2.verbose(1)
@@ -129,21 +139,21 @@ pause()
 
 % set active areas
 tcs2.set_active_areas(1:5)
-pause(0.1)
+pause(0.001)
 
 % set neutral baseline temperature
 tcs2.set_neutral_temperature(baseline_temp);
-pause(0.1)
+pause(0.001)
 
 % set max temperature to 70 C°
 tcs2.write_serial('Ox70'); % hidden command to allow stimulation up to 70 C°C !! Not available for all firwmare version.
+pause(0.001)
 tcs2.write_serial('Om700');
-pause(0.1)
-
+pause(0.001)
 
 % set stimulation parameters using stimulation_profile
 tcs2.enable_temperature_profil(11111)
-pause(0.1)
+pause(0.001)
 areas = 11111;
 num_seg = 5;
 % build the stimulation profil with parameters + add pre-stimulus at baseline temeprature during 100 ms and post-stimulus at baseline temperature during 100 ms 
@@ -151,7 +161,7 @@ tcs2.set_stim_profil(areas,num_seg,seg_duration,seg_end_temp)
 
 % enable temperature feedback at 100 Hz
 tcs2.enable_temperature_feedback(100)
-pause(0.1)
+pause(0.001)
 
 %%
 % send stimulus
