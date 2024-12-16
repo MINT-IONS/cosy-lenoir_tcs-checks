@@ -1,5 +1,10 @@
 %% plot stimulus profil
 
+% load the data from the test routine TCS_test_zones.m
+load('TCS2_test_1_8-8-2024-12-16-29.mat','test')
+load('temperature_feedback.mat')
+
+
 stim_num = 8;
 zones = 5;
 
