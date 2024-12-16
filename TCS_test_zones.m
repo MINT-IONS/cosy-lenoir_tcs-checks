@@ -160,7 +160,7 @@ pause(0.001)
 areas = 11111;
 num_seg = 5;
 % build the stimulation profil with parameters + add pre-stimulus at baseline temeprature during 100 ms and post-stimulus at baseline temperature during 100 ms 
-tcs2.set_stim_profil(areas,num_seg,seg_duration,seg_end_temp)
+tcs2.set_stim_profil(areas,num_seg,seg_duration,seg_end_temp);
 
 % enable temperature feedback at 100 Hz
 tcs2.enable_temperature_feedback(100)
@@ -177,7 +177,7 @@ temperature_feedback = cell(stim_number,zones);
 for stim_num = 1:stim_number
     clc
     disp('Attention ! / be ready !')
-    pause(2)
+    pause(1.5)
     tcs2.stimulate
     disp(strcat(['stimulation #',num2str(stim_num),' sent'])) 
     pause(1)
@@ -402,7 +402,7 @@ for zones = 1:5
     fprintf(fidLog,'\n %s',mess_baseline_pre{zones});
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-fprintf(fidLog,'\n')
+fprintf(fidLog,'\n');
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n baseline post stim:');
@@ -411,7 +411,7 @@ for zones = 1:5
     fprintf(fidLog,'\n %s',mess_baseline_pst{zones});
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-fprintf(fidLog,'\n')
+fprintf(fidLog,'\n');
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n ramp up:');
@@ -420,7 +420,7 @@ for zones = 1:5
     fprintf(fidLog,'\n %s',mess_rampup{zones});
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-fprintf(fidLog,'\n')
+fprintf(fidLog,'\n');
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n overshoot:');
@@ -429,7 +429,7 @@ for zones = 1:5
     fprintf(fidLog,'\n %s',mess_overshoot{zones});
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-fprintf(fidLog,'\n')
+fprintf(fidLog,'\n');
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n ramp down:');
@@ -438,13 +438,11 @@ for zones = 1:5
     fprintf(fidLog,'\n %s',mess_rampdwn{zones});
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-fprintf(fidLog,'\n')
-
-
+fprintf(fidLog,'\n');
 
 
 % save outcomes of the test
-save(mat_filename, 'test')
+save(fullfile(savePath,mat_filename), 'test')
 
 
 

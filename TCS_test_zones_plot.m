@@ -1,11 +1,10 @@
 %% plot stimulus profil
 
 % load the data from the test routine TCS_test_zones.m
-load('TCS2_test_1_8-8-2024-12-16-29.mat','test')
-load('temperature_feedback.mat')
+load('TCS2_D_test_1_12-16-2024-14-24-4.mat','test')
+temperature_feedback = test.results.feedback;
 
-
-stim_num = 8;
+stim_num = 10;
 zones = 5;
 
 F1 = figure('color','w','Position',[0,0,1000,900]);
@@ -14,9 +13,9 @@ xvalues = (1:length(temperature_feedback{stim_num,zones}))*10;
 
 % plot theoretical stimulation profil (adding of 10 ms to account for
 % feedback/stimulation delay of the TCS2)
-x_val = [10 (pre_stim_dur*10) (pre_stim_dur*10+rise_time) (pre_stim_dur*10+rise_time+plateau_time)...
-    (pre_stim_dur*10+rise_time+plateau_time+fall_time) (pre_stim_dur*10+rise_time+plateau_time+fall_time+pst_stim_dur*10)];
-y_val = [baseline_temp baseline_temp target_temp target_temp baseline_temp baseline_temp];
+x_val = [10 (test.param.pre_stim_dur) (test.param.pre_stim_dur+test.param.rise_time) (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time)...
+    (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time+test.param.fall_time) (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time+test.param.fall_time+test.param.pst_stim_dur)];
+y_val = [test.param.pre_stim_temp test.param.pre_stim_temp test.param.target_temp test.param.target_temp test.param.pre_stim_temp test.param.pre_stim_temp];
 
 plot(x_val,y_val,'--m','LineWidth',1.5)
 
@@ -28,9 +27,9 @@ end
 
 % plotting layout
 set(gca,'FontSize',12)
-set(gca,'YTick',(baseline_temp:1:target_temp+3))
+set(gca,'YTick',(test.param.pre_stim_temp:1:test.param.target_temp+3))
 set(gca,'TickDir','out')
-title(['temperature curve for ', 'stimulation at ',num2str(target_temp),'°C'],'FontSize',15);
+title(['temperature curve for ', 'stimulation at ',num2str(test.param.target_temp),'°C'],'FontSize',15);
 L = legend('theoretical','zone 1','zone 2','zone 3','zone 4','zone 5');
 set(L,'Box','off')
 xlabel('time (ms)')
@@ -42,7 +41,7 @@ ax.Box = 'off';
 
 % prepare theoretical values pre stim + ramp up
 % x_valup = [10 (pre_stim_dur*10) (pre_stim_dur*10+rise_time)];
-% y_valup = [baseline_temp baseline_temp target_temp];
+% y_valup = [pre_stim_temp pre_stim_temp target_temp];
 % 
 % % plot linear regression for rampups
 % F2 = figure('color','w','Position',[0,0,1000,900]);
@@ -64,7 +63,7 @@ ax.Box = 'off';
 %         xlabel('time (ms)')
 %     end
 % end
-% set(findobj(gcf,'type','axes'),'FontName','Arial','FontSize',12,'FontWeight','Normal', 'LineWidth', 0.5,'Box','off','xlim',[0 (pre_stim_dur*10+rise_time+10)],'ylim',[baseline_temp-2 target_temp+5]);
+% set(findobj(gcf,'type','axes'),'FontName','Arial','FontSize',12,'FontWeight','Normal', 'LineWidth', 0.5,'Box','off','xlim',[0 (pre_stim_dur*10+rise_time+10)],'ylim',[pre_stim_temp-2 target_temp+5]);
 % legend('estimated','measurement','theoretical','Location','best','box','off')
 % sgtitle('ramp up','FontWeight','Bold')
 
@@ -72,7 +71,7 @@ ax.Box = 'off';
 
 % % prepare theoretical values pre stim + ramp up
 % x_valdwn = [1 fall_time];
-% y_valdwn = [target_temp baseline_temp];
+% y_valdwn = [target_temp pre_stim_temp];
 % 
 % F3 = figure('color','w','Position',[0,0,1000,900]);
 % for zones = 1:5
@@ -93,7 +92,7 @@ ax.Box = 'off';
 %         xlabel('time (ms)')
 %     end
 % end
-% set(findobj(gcf,'type','axes'),'FontName','Arial','FontSize',12,'FontWeight','Normal', 'LineWidth', 0.5,'Box','off','xlim',[0 fall_time+10],'ylim',[baseline_temp-2 target_temp+5]);
+% set(findobj(gcf,'type','axes'),'FontName','Arial','FontSize',12,'FontWeight','Normal', 'LineWidth', 0.5,'Box','off','xlim',[0 fall_time+10],'ylim',[pre_stim_temp-2 target_temp+5]);
 % legend('estimated','measurement','theoretical','Location','best','box','off')
 % sgtitle('ramp down','FontWeight','Bold')
 
