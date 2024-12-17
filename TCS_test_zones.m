@@ -179,7 +179,7 @@ for stim_num = 1:stim_number
     disp('Attention ! / be ready !')
     pause(1.5)
     tcs2.stimulate
-    disp(strcat(['stimulation #',num2str(stim_num),' sent'])) 
+    disp(strcat(['stimulation #',num2str(stim_num),' /',num2str(stim_number),' sent'])) 
     pause(1)
     clc
     if stim_num < 10
@@ -231,18 +231,17 @@ for zones =1:5
 end
 % warning per zone
 for zones = 1:5
-    % if avg_sd_base_pre(1,zones) <= 0.5 % std should be close to device precision
+    if avg_sd_base_pre(1,zones) <= 0.5 % std should be close to device precision
         mess_baseline_pre{zones} = strcat(['zone ',num2str(zones),' baseline pre stimulus is steady']);
         disp(mess_baseline_pre{zones});
-    % else
+    else
          mess_baseline_pre{zones} = strcat(['WARNING ! zone ',num2str(zones),' baseline pre stimulus is not constant!']);
         disp(mess_baseline_pre{zones});
-    % end
+    end
 end
 
 % find the zone with highest variability
 [avg_sd_zone_pre, zone_pre] = max(avg_sd_base_pre);
-
 test.results.avg_sd_base_pre = avg_sd_base_pre;
 test.results.mean_base_pre = mean_base_pre;
 test.results.zone_pre_variability = [avg_sd_zone_pre, zone_pre];
@@ -290,7 +289,7 @@ xvalues = (1:length(temperature_feedback{stim_num,zones}))*10;
 x_rampup = xvalues(1:rise_time/10+1);
 for stim_num = 1:stim_number
     for zones = 1:5
-        rampup{stim_num,zones} = temperature_feedback{stim_num,zones}(10:(pre_stim_dur+rise_time/10));
+        rampup{stim_num,zones} = temperature_feedback{stim_num,zones}(10+1:(pre_stim_dur+rise_time/10)+1);
         mdlup{stim_num,zones} = fitlm(x_rampup, rampup{stim_num,zones});
         slope_up(stim_num,zones) = round(table2array(mdlup{stim_num,zones}.Coefficients(2,1))*1000);
     end
@@ -311,6 +310,20 @@ end
 
 test.results.avg_slope_up = avg_slope_up;
 test.results.zone_min_slope_up = [min_slope_up, zone_up];
+
+% estimated slopes per zones on avearged trials
+for zones = 1:5
+    for stim_num = 1: stim_number
+        temp_feedb(zones,stim_num,:) = temperature_feedback{stim_num,zones}(10+1:(pre_stim_dur+rise_time/10)+1);
+    end
+    avg_
+end
+
+for zones = 1:5
+    avg_rampup{zones} = mean(temperature_feedback{:,zones}(10+1:(pre_stim_dur+rise_time/10)+1));
+    mdlup{zones} = fitlm(x_rampup, avg_rampup{zones});
+    slope_up(zones) = round(table2array(mdlup{zones}.Coefficients(2,1))*1000);
+end
 
 %% plot linear regression for each zone
 
@@ -401,8 +414,7 @@ for zones = 1:5
     fidLog = fopen(fullfile(savePath,txt_filename),'a+');
     fprintf(fidLog,'\n %s',mess_baseline_pre{zones});
 end
-fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-fprintf(fidLog,'\n');
+fprintf(fidLog,'\n Highest variablility at zone %d',zone_pre);
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n baseline post stim:');
