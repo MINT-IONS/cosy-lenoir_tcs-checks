@@ -90,8 +90,8 @@ comments = info(13);
 pre_stim_dur = 10;
 pst_stim_dur = 10;
 pre_stim_temp = baseline_temp;
-seg_duration = [pre_stim_dur rise_time/10 plateau_time/10 fall_time/10 pst_stim_dur];
-seg_end_temp = [pre_stim_temp*10 target_temp*10 target_temp*10 baseline_temp*10 baseline_temp*10];
+seg_duration = [pre_stim_dur rise_time plateau_time fall_time pst_stim_dur];
+seg_end_temp = [pre_stim_temp target_temp target_temp baseline_temp baseline_temp];
 
 % create and save outcomes in .mat file
 clockVal = clock; % Current date and time as date vector. [year month day hour minute seconds]
@@ -113,8 +113,8 @@ savePath = chosen_dir;
 
 %%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
 test = struct;
-test.param.pre_stim_dur = pre_stim_dur*10;
-test.param.pst_stim_dur = pst_stim_dur*10;
+test.param.pre_stim_dur = pre_stim_dur;%*10;
+test.param.pst_stim_dur = pst_stim_dur;%*10;
 test.param.pre_stim_temp = pre_stim_temp;
 test.param.seg_duration = seg_duration;
 test.param.seg_end_temp = seg_end_temp;
@@ -136,18 +136,19 @@ pause(0.001)
 tcs2.verbose(1)
 
 %%%%% add serial number of the TCS and probe + firmware version !!! %%%%% 
-TCS_help = tcs2.get_help;
+TCS_help = tcs2.get_serial_cmd_help;
 serial_number = TCS_help(2:85);
 
 % check battery level and confirm
 clc
-tcs2.get_battery
+tcs2.get_battery(1)
 disp('BATTERY OK ?')
 disp('press key to continue !')
 pause()
 
-% set active areas
-tcs2.set_active_areas(1:5)
+% set all active areas
+areas = 11111;
+tcs2.set_active_areas(areas)
 pause(0.001)
 
 % set neutral baseline temperature
@@ -155,19 +156,16 @@ tcs2.set_neutral_temperature(baseline_temp);
 pause(0.001)
 
 % set max temperature to 70 C°
-tcs2.write_serial('Ox70'); % hidden command to allow stimulation up to 70 C°C !! Not available for all firwmare version.
-pause(0.001)
-tcs2.write_serial('Om700');
+tcs2.set_maximum_temp(70); % hidden command to allow stimulation up to 70 C°C !! Not available for all firwmare version.
 pause(0.001)
 
 % set stimulation parameters using stimulation_profile
-tcs2.enable_temperature_profil(11111)
+tcs2.enable_temperature_profil(areas)
 pause(0.001)
-areas = 11111;
 num_seg = 5;
 % build the stimulation profil with parameters + add pre-stimulus at baseline temeprature during 100 ms and post-stimulus at baseline temperature during 100 ms 
 tcs2.set_stim_profil(areas,num_seg,seg_duration,seg_end_temp);
-
+pause(0.001)
 % enable temperature feedback at 100 Hz
 tcs2.enable_temperature_feedback(100)
 pause(0.001)
