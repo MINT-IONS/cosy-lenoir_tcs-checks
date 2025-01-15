@@ -36,7 +36,7 @@ prompt = {'\fontsize{12} Test number :','\fontsize{12} Baseline temperature (°C)
 dlgtitle = 'Heating stimulation parameters';
 opts.Interpreter = 'tex';
 dims = repmat([1 80],13,1);
-definput = {'1', '32', '62', '300', '300', '30', ' ', ' ', ' ', 'A', 'A', 'T03', 'none'};
+definput = {'1', '32', '62', '300', '300', '300', ' ', ' ', ' ', 'A', 'A', 'T03', 'none'};
 
 info = inputdlg(prompt,dlgtitle,dims,definput,opts);
 test_num = str2double(info(1)); 
