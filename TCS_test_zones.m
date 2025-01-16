@@ -1,33 +1,25 @@
-%   tcs2.TCS_test-zones.m  function performs the quick routine check of the
-%   device. Results are saved in a structure in a .mat file and a summary of
-%   parameters and results are saved in a .txt file.
-% Quick diagnostic of the zones of TCS for verification of the ramp-up speed and target temperature of each zones
-% This routine works with the package "+tcs2" version '3.0'
+% tcs2.TCS_test-zones.m  performs the quick routine check of the device.
+% Results are saved in a structure in a .mat file and a summary of parameters and results are saved in a .txt file. Both files are then stored in an archive .zip file. 
+% 
+% This routine works with the package "+tcs2" version '3.0’
+% 
 % Material needed:
-%       1 experiment PC (Matlab 2014a or later up to 2023b)
-%       1 TCS2 + probe
-%
-% The aim of this routine is to check the output of the TCS. It works for basic stimulation profil typically starting from baseline
-% temperature then reaching a target temperature and then going back to
-% baseline (3 segments in terms of stimulation profile).
-% More complex profil (e.g. sinusoidal stimulation) are not included here.
-%
-%   First: fill in the GUI with stimulation parameters 
-%   Second: follow instructions and deliver the stimulations onto the skin,
-% move the probe when you hear a bip
-%   Third: some basic statistics are provided to assess if the
-% thermode delivered properly the requested heat stimulation. 
-%   Fourth: send the output files to MINT !
-%
-% TCS and probe names are A, B, C, D, or E
-% TCS probe type are "classic" T03, "5 Peltier elements in a row" T01, "large as
-% Medoc thermode T11", "MRI" T09 etc (see QST.Lab website: https://www.qst-lab.eu/probes)
-%
+%         1 experiment laptop (Matlab 2014a or later up to 2023b)
+%         1 TCS2 + probe
+% 
+% This routine works for basic stimulation profile typically starting from baseline temperature then reaching a target temperature and then going back to baseline (5 segments in terms of stimulation profile). More complex profil (e.g. sinusoidal stimulation) are not included here.
+% 
+% First: fill in the GUI with stimulation parameters 
+% Second: follow instructions and deliver the stimulations onto the skin, move the probe at each beep!
+% Third: some basic statistics are provided to assess if the thermode delivered properly the requested heat stimulation. 
+% Fourth: send the output files to MINT !
+% 
+% TCS and probe names are A, B, C, D, or E.
+% 
 % Visualization of the results could be easily done using TCS_test_zones_plot.m
-%
-% Cédric Lenoir, COSY, IoNS, UCLouvain, January 2025
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% Cédric Lenoir, MINT, IoNS, UCLouvain, January 2025
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function TCS_test_zones
 
@@ -108,12 +100,11 @@ experiment = 'test_TCS2';
 % make unique texte and mat filenames
 txt_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.txt']);
 mat_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.mat']);
-% folder name to be done
-current_folder = pwd;
-% choose where to save the outcomes
-chosen_dir = uigetdir(current_folder);
-savePath = chosen_dir;
-% savePath = 'C:\Users\Nocions\Desktop';
+% default files will be save on the desktop (alternatively choice where to
+% % save the outcomes)
+% chosen_dir = uigetdir(current_folder);
+% savePath = chosen_dir;
+savePath = 'C:\Users\Nocions\Desktop';
 
 %%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
 test = struct;
@@ -133,13 +124,13 @@ test.param.fall_time = fall_time;
 % Initialization and communication
 TCS_COM = tcs2.find_com_port;
 pause(0.001)
-COM = tcs2.init_serial(TCS_COM);
+serialObj = tcs2.init_serial(TCS_COM);
 pause(0.001)
 
 % verbosity
 tcs2.verbose(1)
 
-%%%%% add serial number of the TCS and probe + firmware version !!! %%%%% 
+% get the firmware version number and serial no. of the probe
 TCS_help = tcs2.get_serial_cmd_help;
 serial_number = TCS_help(2:95);
 
@@ -401,6 +392,8 @@ end
 
 test.results.avg_overshoot = avg_overshoot;
 test.results.std_overshoot = std_overshoot;
+test.results.max_std_overshoot = max_std_overshoot;
+test.results.max_std_zone_overshoot = max_std_zone_overshoot;
 
 % linebreak in command window
 disp(' ')
@@ -583,6 +576,6 @@ save(fullfile(savePath,mat_filename), 'test')
 fclose all;
 zip(txt_filename(1:end-4),{txt_filename, mat_filename});
 delete(mat_filename, txt_filename)
-
+tcs2.close_serial(serialObj)
 end
 
