@@ -1,47 +1,52 @@
+%   tcs2.TCS_test-zones.m  function performs the quick routine check of the
+%   device. Results are saved in a structure in a .mat file and a summary of
+%   parameters and results are saved in a .txt file.
 % Quick diagnostic of the zones of TCS for verification of the ramp-up speed and target temperature of each zones
-% This routine works with the package "+tcs2" version '2.0.2'
+% This routine works with the package "+tcs2" version '3.0'
 % Material needed:
-%       1 experiment PC (Matlab 2014a or later, depending on the version visualization might be impacted)
-%       1 TCS2
+%       1 experiment PC (Matlab 2014a or later up to 2023b)
+%       1 TCS2 + probe
 %
-% The aim of this routine is to check the output of the TCS thus it works for basic stimulation profil typically starting from baseline
+% The aim of this routine is to check the output of the TCS. It works for basic stimulation profil typically starting from baseline
 % temperature then reaching a target temperature and then going back to
-% baseline (3 segments in terms of stimulation profil).
-% More complex profil (e.g. sinusoidal stimulation) for whom visualization could be obtained are not included here.
+% baseline (3 segments in terms of stimulation profile).
+% More complex profil (e.g. sinusoidal stimulation) are not included here.
 %
-% First: fill in the GUI with stimulation parameters 
-% Second: follow instructions and deliver the stimulations onto the skin,
+%   First: fill in the GUI with stimulation parameters 
+%   Second: follow instructions and deliver the stimulations onto the skin,
 % move the probe when you hear a bip
-% Third: some basic statistics are provided to assess if the
-% thermode zones delivered properly the requested heat stimulation. 
-% 
-% TCS and probe names are A, B, C, D, or E
-% TCS probe type are "classic" T03, "5 Peltier in a row" T01, "large as
-% Medoc thermode T11", "MRI" T09 etc (see QSTLab website)
+%   Third: some basic statistics are provided to assess if the
+% thermode delivered properly the requested heat stimulation. 
+%   Fourth: send the output files to MINT !
 %
+% TCS and probe names are A, B, C, D, or E
+% TCS probe type are "classic" T03, "5 Peltier elements in a row" T01, "large as
+% Medoc thermode T11", "MRI" T09 etc (see QST.Lab website: https://www.qst-lab.eu/probes)
+%
+% Visualization of the results could be easily done using TCS_test_zones_plot.m
 %
 % Cédric Lenoir, COSY, IoNS, UCLouvain, January 2025
-% Matlab 2023a
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function TCS_test_zones
 
 % GUI for parameters
-prompt = {'\fontsize{12} Test number :','\fontsize{12} Baseline temperature (°C) :', '\fontsize{12} Target temperature (from 0 to 65°C) :',...
+prompt = {'\fontsize{12} User Name :','\fontsize{12} Baseline temperature (°C) :', '\fontsize{12} Target temperature (from 0 to 65°C) :',...
         '\fontsize{12} Duration (rise time + plateau in ms) : ',...
         '\fontsize{12} Speed ramp-up (°C/s) : ', '\fontsize{12}  Speed ramp-down (°C/s) : ',...
         '\fontsize{12} For profil segment : Rise time (ms) : ',...
         '\fontsize{12} For profil segment : Plateau (ms) : ',...
         '\fontsize{12} For profil segment : Fall time (to baseline temperature in ms) : ',...
-        '\fontsize{12} Which TCS (name) ?', '\fontsize{12} Which probe (name) ?','\fontsize{12} Which probe (type) ?',...
+        '\fontsize{12} Which TCS (name) ?', '\fontsize{12} Which probe (name) ?',...
         '\fontsize{12} Enter comments'};
-dlgtitle = 'Heating stimulation parameters';
+dlgtitle = 'Heat stimulation parameters';
 opts.Interpreter = 'tex';
-dims = repmat([1 80],13,1);
-definput = {'1', '32', '62', '300', '300', '300', ' ', ' ', ' ', 'A', 'A', 'T03', 'none'};
+dims = repmat([1 80],12,1);
+definput = {'', '32', '62', '300', '300', '300', '', '', '', '', '', 'none'};
 
 info = inputdlg(prompt,dlgtitle,dims,definput,opts);
-test_num = str2double(info(1)); 
+user_name = char(info(1));
 baseline_temp = str2double(info(2)); % °C
 target_temp = str2double(info(3)); % °C
 duration = str2double(info(4)); % rise time + plateau (ms)
@@ -50,6 +55,11 @@ ramp_down = str2double(info(6)); % °C/s
 rise_time = str2double(info(7)); % ms
 plateau_time = str2double(info(8)); % ms
 fall_time = str2double(info(9)); % ms
+TCS_name = char(info(10));
+TCS_name = strrep(TCS_name,' ','');
+probe_name = char(info(11));
+probe_name = strrep(probe_name,' ','');
+comments = info(12);
 
 % number of stimuli
 stim_number = 10;
@@ -84,10 +94,6 @@ if isnan(duration)
 else
 end
 
-tcs = char(info(10));
-probe = strcat(info(11),'-',info(12));
-comments = info(13);
-
 % add pre and post stimulus periods
 pre_stim_dur = 10;
 pst_stim_dur = 10;
@@ -100,23 +106,19 @@ clockVal = clock; % Current date and time as date vector. [year month day hour m
 timestamp = sprintf('%d-%d-%d-%d-%d-%.0f',clockVal(2),clockVal(3),clockVal(1),clockVal(4),clockVal(5),clockVal(6));
 experiment = 'test_TCS2';
 % make unique texte and mat filenames
-txt_filename = strcat(['TCS2_',sprintf('%s', tcs),'_test_',sprintf('%s', num2str(test_num)), '_', sprintf('%s', timestamp),'.txt']);
-mat_filename = strcat(['TCS2_',sprintf('%s', tcs),'_test_',sprintf('%s', num2str(test_num)), '_', sprintf('%s', timestamp),'.mat']);
+txt_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.txt']);
+mat_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.mat']);
 % folder name to be done
 current_folder = pwd;
 % choose where to save the outcomes
 chosen_dir = uigetdir(current_folder);
 savePath = chosen_dir;
-
-% % write in text file
-% fidLog = fopen(fullfile(savePath,txt_filename),'w');
-% fprintf(fidLog,'Experiment: %s \nDate and time: %s \nTest number: %s \nBaseline temperature: %s \nTarget temperature: %s \nTCS: %s; \nprobe: %s; \n\nNotes: %s \n\n',...
-%     experiment, timestamp, num2str(test_num), num2str(baseline_temp), num2str(target_temp), char(tcs), char(probe), char(comments));
+% savePath = 'C:\Users\Nocions\Desktop';
 
 %%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
 test = struct;
-test.param.pre_stim_dur = pre_stim_dur;%*10;
-test.param.pst_stim_dur = pst_stim_dur;%*10;
+test.param.pre_stim_dur = pre_stim_dur;
+test.param.pst_stim_dur = pst_stim_dur;
 test.param.pre_stim_temp = pre_stim_temp;
 test.param.seg_duration = seg_duration;
 test.param.seg_end_temp = seg_end_temp;
@@ -139,7 +141,10 @@ tcs2.verbose(1)
 
 %%%%% add serial number of the TCS and probe + firmware version !!! %%%%% 
 TCS_help = tcs2.get_serial_cmd_help;
-serial_number = TCS_help(2:85);
+serial_number = TCS_help(2:95);
+
+% get +tcs2 package version
+ver = tcs2.get_version;
 
 % check battery level and confirm
 clc
@@ -525,8 +530,8 @@ disp(' ')
 %% save
 % write param in text file
 fidLog = fopen(fullfile(savePath,txt_filename),'w');
-fprintf(fidLog,'TEST: %s \n\nDate and time: %s \n\nTest number: %s \n\nTCS: %s \n\nfirmware & probe: %s \n\nBaseline temperature: %s°C \n\nTarget temperature: %s°C \n\nRamp-up speed: %s°C/s \n\nRamp-down: %s°C/s \n\nNotes: %s \n\n',...
-    experiment, timestamp, num2str(test_num), tcs, serial_number, num2str(baseline_temp), num2str(target_temp), num2str(ramp_up), num2str(ramp_down), char(comments));
+fprintf(fidLog,'TEST: %s \n\nPackage version: %s \n\nDate and time: %s \n\nUser name: %s \n\nTCS: %s \n\nProbe name: %s \n\n%s \n\nBaseline temperature: %s°C \n\nTarget temperature: %s°C \n\nRamp-up speed: %s°C/s \n\nRamp-down: %s°C/s \n\nNotes: %s \n\n',...
+    experiment, ver, timestamp, user_name, TCS_name, probe_name, serial_number, num2str(baseline_temp), num2str(target_temp), num2str(ramp_up), num2str(ramp_down), char(comments));
 
 % write results in text file
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
@@ -573,9 +578,11 @@ end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n');
 
-
 % save outcomes of the test
 save(fullfile(savePath,mat_filename), 'test')
+fclose all;
+zip(txt_filename(1:end-4),{txt_filename, mat_filename});
+delete(mat_filename, txt_filename)
 
 end
 
