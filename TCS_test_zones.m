@@ -24,6 +24,8 @@
 % Matlab 2023a
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+function TCS_test_zones
+
 % GUI for parameters
 prompt = {'\fontsize{12} Test number :','\fontsize{12} Baseline temperature (°C) :', '\fontsize{12} Target temperature (from 0 to 65°C) :',...
         '\fontsize{12} Duration (rise time + plateau in ms) : ',...
@@ -575,5 +577,5 @@ fprintf(fidLog,'\n');
 % save outcomes of the test
 save(fullfile(savePath,mat_filename), 'test')
 
-
+end
 
