@@ -1,7 +1,7 @@
 % tcs2.TCS_test-zones.m  performs the quick routine check of the device.
 % Results are saved in a structure in a .mat file and a summary of parameters and results are saved in a .txt file. Both files are then stored in an archive .zip file. 
 % 
-% This routine works with the package "+tcs2" version '3.0’
+% This routine works with/is part of the package "+tcs2" version '3.0’
 % 
 % Material needed:
 %         1 experiment laptop (Matlab 2014a or later up to 2023b)
@@ -64,7 +64,7 @@ if isnan(rise_time)
 elseif ~isnan(rise_time)
     ramp_up = (abs((target_temp-baseline_temp))/rise_time)*1000;
     if ramp_up > 300
-        disp('Heating ramp too high!')
+        disp('Heating ramp too high! adjust stimulation parameters')
         return
     end
 end
@@ -77,7 +77,7 @@ if isnan(fall_time)
 elseif ~isnan(fall_time)
     ramp_down = (abs((target_temp-baseline_temp))/fall_time)*1000;
     if ramp_down > 300
-        disp('Cooling ramp too high!')
+        disp('Cooling ramp too high! adjust stimulation parameters')
         return
     end
 end
@@ -154,15 +154,15 @@ tcs2.set_neutral_temperature(baseline_temp);
 pause(0.001)
 
 % set max temperature to 70 C°
-tcs2.set_maximum_temp(70); % hidden command to allow stimulation up to 70 C°C !! Not available for all firwmare version.
+tcs2.set_max_temperature(70); % hidden command to allow stimulation up to 70 C°C !! Not available for all firwmare version.
 pause(0.001)
 
 % set stimulation parameters using stimulation_profile
-tcs2.enable_temperature_profil(areas)
+tcs2.enable_temperature_profile(areas)
 pause(0.001)
 num_seg = 5;
 % build the stimulation profil with parameters + add pre-stimulus at baseline temeprature during 100 ms and post-stimulus at baseline temperature during 100 ms 
-tcs2.set_stim_profil(areas,num_seg,seg_duration,seg_end_temp);
+tcs2.set_stim_profile(areas,num_seg,seg_duration,seg_end_temp);
 pause(0.001)
 % enable temperature feedback at 100 Hz
 tcs2.enable_temperature_feedback(100)
@@ -184,7 +184,7 @@ for stim_num = 1:stim_number
     if stim_num < 10
         disp(strcat(['move the probe for next stimulus']))
     elseif stim_num > 9
-        disp(strcat(['done !']))
+        disp(strcat(['stimulations done !']))
     end
     pause(1.5)
 
@@ -577,5 +577,7 @@ fclose all;
 zip(txt_filename(1:end-4),{txt_filename, mat_filename});
 delete(mat_filename, txt_filename)
 tcs2.close_serial(serialObj)
+
+disp('Data saved in zip file on the destop, please send it to MINT :-)')
 end
 

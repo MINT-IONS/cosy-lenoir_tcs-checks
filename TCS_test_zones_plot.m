@@ -13,8 +13,9 @@ xvalues = (1:length(temperature_feedback{stim_num,zones}))*10;
 
 % plot theoretical stimulation profil (adding of 10 ms to account for
 % feedback/stimulation delay of the TCS2)
-x_val = [10 (test.param.pre_stim_dur) (test.param.pre_stim_dur+test.param.rise_time) (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time)...
-    (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time+test.param.fall_time) (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time+test.param.fall_time+test.param.pst_stim_dur)];
+% x_val = [10 (10+test.param.pre_stim_dur) (10+test.param.pre_stim_dur+test.param.rise_time) (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time)...
+%     (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time+test.param.fall_time) (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time+test.param.fall_time+test.param.pst_stim_dur)];
+x_val = cumsum([10 test.param.pre_stim_dur test.param.rise_time test.param.plateau_time test.param.fall_time test.param.pst_stim_dur]);
 y_val = [test.param.pre_stim_temp test.param.pre_stim_temp test.param.target_temp test.param.target_temp test.param.pre_stim_temp test.param.pre_stim_temp];
 
 plot(x_val,y_val,'--m','LineWidth',1.5)
@@ -49,7 +50,20 @@ for izones = 1:zones
             avg_temp_feedb(izones,:) = mean(z5_temperature_feedback);
     end
 end
-
+for izones = 1:zones
+switch izones
+    case 1
+    avg_temp_feedb(izones,:) = z1_temperature_feedback;
+    case 2
+        avg_temp_feedb(izones,:) = z2_temperature_feedback;
+    case 3
+        avg_temp_feedb(izones,:) = z3_temperature_feedback;
+    case 4
+        avg_temp_feedb(izones,:) = z4_temperature_feedback;
+    case 5
+        avg_temp_feedb(izones,:) = z5_temperature_feedback;
+end
+end
 for izones = 1:zones
     plot(xvalues,avg_temp_feedb(izones,:),'Color',color_plot{izones},'LineWidth',1)
     hold on
