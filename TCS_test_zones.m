@@ -173,22 +173,22 @@ pause(0.001)
 % prepare for storing of temperature data for 5 zones and successive 10 stimulations
 temperature_feedback = cell(stim_number,zones);
 
-for stim_num = 1:stim_number
+for istim = 1:stim_number
     clc
     disp('Attention ! / be ready ! PUT the probe on the gel pad.')
-    if stim_num == 1
+    if istim == 1
     disp('PRESS ANY KEY TO START STIMULATION.')
     pause()
     else
     end
     pause(1.5)
     tcs2.stimulate
-    disp(strcat(['stimulation #',num2str(stim_num),' /',num2str(stim_number),' sent'])) 
+    disp(strcat(['stimulation #',num2str(istim),' /',num2str(stim_number),' sent'])) 
     pause(1)
     clc
-    if stim_num < 10
+    if istim < 10
         disp(strcat(['MOVE the probe for next stimulus']))
-    elseif stim_num > 9
+    elseif istim > 9
         disp(strcat(['stimulations done !']))
     end
     pause(1.5)
@@ -209,8 +209,8 @@ for stim_num = 1:stim_number
         temp_feed(idx) = str2double(temporary(temporary_index(idx)+1:temporary_index(idx)+4));
     end
     % sort the temperatures according to each zones (1 to 5)
-    for izones = 1:zones
-        temperature_feedback{stim_num,izones} = temp_feed(izones:5:end);
+    for izone = 1:zones
+        temperature_feedback{istim,izone} = temp_feed(izone:5:end);
     end
     clear temporary temporary_index temp_feed 
 end
@@ -223,24 +223,24 @@ test.results.feedback = temperature_feedback;
 %% Checks
 % pre-stimulus consistency
 clc
-for stim_num = 1:stim_number
-    for izones = 1:zones
-        temp_base_pre{stim_num,izones} = temperature_feedback{stim_num,izones}(1:10);
-        sd_base_pre(stim_num,izones) = std(temp_base_pre{stim_num,izones});
-        mean_base_pre(stim_num,izones) = mean(temp_base_pre{stim_num,izones});
+for istim = 1:stim_number
+    for izone = 1:zones
+        temp_base_pre{istim,izone} = temperature_feedback{istim,izone}(1:10);
+        sd_base_pre(istim,izone) = std(temp_base_pre{istim,izone});
+        mean_base_pre(istim,izone) = mean(temp_base_pre{istim,izone});
     end
 end
-for izones = 1:zones
-    avg_sd_base_pre(1,izones) = mean(sd_base_pre(:,izones));
+for izone = 1:zones
+    avg_sd_base_pre(1,izone) = mean(sd_base_pre(:,izone));
 end
 % warning per zone
-for izones = 1:zones
-    if avg_sd_base_pre(1,izones) <= 0.1  % 0.1°C relative accuracy of the TCS
-        mess_baseline_pre{izones} = strcat(['zone ',num2str(izones),' neutral temperature pre-stimulus is steady']);
-        disp(mess_baseline_pre{izones});
+for izone = 1:zones
+    if avg_sd_base_pre(1,izone) <= 0.1  % 0.1°C relative accuracy of the TCS
+        mess_baseline_pre{izone} = strcat(['zone ',num2str(izone),' neutral temperature pre-stimulus is steady']);
+        disp(mess_baseline_pre{izone});
     else
-         mess_baseline_pre{izones} = strcat(['WARNING! zone ',num2str(izones),' neutral temperature pre-stimulus is not constant!']);
-        disp(mess_baseline_pre{izones});
+         mess_baseline_pre{izone} = strcat(['WARNING! zone ',num2str(izone),' neutral temperature pre-stimulus is not constant!']);
+        disp(mess_baseline_pre{izone});
     end
 end
 
@@ -254,24 +254,24 @@ test.results.zone_pre_variability = [avg_sd_zone_pre, zone_pre];
 disp(' ')
 
 % post-stimulus consistency
-for stim_num = 1:stim_number
-    for izones = 1:zones
-        temp_base_pst{stim_num,izones} = temperature_feedback{stim_num,izones}(end-9:end);
-        sd_base_pst(stim_num,izones) = std(temp_base_pst{stim_num,izones});
-        mean_base_pst(1,izones) = mean(temp_base_pst{stim_num,izones});
+for istim = 1:stim_number
+    for izone = 1:zones
+        temp_base_pst{istim,izone} = temperature_feedback{istim,izone}(end-9:end);
+        sd_base_pst(istim,izone) = std(temp_base_pst{istim,izone});
+        mean_base_pst(1,izone) = mean(temp_base_pst{istim,izone});
     end
 end
-for izones = 1:zones
-    avg_sd_base_pst(1,izones) = mean(sd_base_pst(:,izones));
+for izone = 1:zones
+    avg_sd_base_pst(1,izone) = mean(sd_base_pst(:,izone));
 end
 % warning per zone
-for izones = 1:zones
-    if avg_sd_base_pst(1,izones) <= 0.1 % 0.1°C relative accuracy of the TCS
-        mess_baseline_pst{izones} = strcat(['zone ',num2str(izones),' neutral temperature post-stimulus is steady']);
-        disp(mess_baseline_pst{izones})
+for izone = 1:zones
+    if avg_sd_base_pst(1,izone) <= 0.1 % 0.1°C relative accuracy of the TCS
+        mess_baseline_pst{izone} = strcat(['zone ',num2str(izone),' neutral temperature post-stimulus is steady']);
+        disp(mess_baseline_pst{izone})
     else
-        mess_baseline_pst{izones} = strcat(['WARNING! zone ',num2str(izones),' neutral temperature post-stimulus is not constant!']);
-        disp(mess_baseline_pst{izones})
+        mess_baseline_pst{izone} = strcat(['WARNING! zone ',num2str(izone),' neutral temperature post-stimulus is not constant!']);
+        disp(mess_baseline_pst{izone})
     end
 end
 
@@ -292,25 +292,25 @@ xvalues = (1:length(temperature_feedback{stim_number,zones}))*10;
 x_rampup = xvalues(1:rise_time/10+1);
 
 %%% variability at trial level %%%
-for izones = 1:zones
-    for stim_num = 1:stim_number
-        rampup{stim_num,izones} = temperature_feedback{stim_num,izones}(10:(pre_stim_dur+rise_time/10));
-        mdlup{stim_num,izones} = fitlm(x_rampup, rampup{stim_num,izones});
-        trial_slope_up(stim_num,izones) = round(table2array(mdlup{stim_num,izones}.Coefficients(2,1))*1000);
+for izone = 1:zones
+    for istim = 1:stim_number
+        rampup{istim,izone} = temperature_feedback{istim,izone}(10+1:(pre_stim_dur/10+rise_time/10)+1);
+        mdlup{istim,izone} = fitlm(x_rampup, rampup{istim,izone});
+        trial_slope_up(istim,izone) = round(table2array(mdlup{istim,izone}.Coefficients(2,1))*1000);
     end
 end
 
-for izones = 1:zones
-    avg_slope_up(1,izones) = mean(trial_slope_up(:,izones));
-    std_slope_up(1,izones) = std(trial_slope_up(:,izones));
+for izone = 1:zones
+    avg_slope_up(1,izone) = mean(trial_slope_up(:,izone));
+    std_slope_up(1,izone) = std(trial_slope_up(:,izone));
 end
 
 % find the zone with slowest slope
 [min_slope_up, min_zone_up] = min(avg_slope_up);
 
 % find the zone with highest slope variability
-for izones = 1:zones
-    std_slope_up(1,izones) = std(trial_slope_up(:,izones));
+for izone = 1:zones
+    std_slope_up(1,izone) = std(trial_slope_up(:,izone));
 end
 [max_std_slope_up, max_std_zone_up] = max(std_slope_up);
 
@@ -320,48 +320,48 @@ test.results.zone_min_slope_up = [min_slope_up, min_zone_up];
 test.results.zone_max_std_slope_up = [max_std_slope_up, max_std_zone_up];
 
 %%% estimation at zone level on averaged trials %%%
-for izones = 1:zones
-    switch izones
+for izone = 1:zones
+    switch izone
         case 1
-            for istim = 1:stim_num
-                z1_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izones}(10:(pre_stim_dur+rise_time/10));
+            for istim = 1:istim
+                z1_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izone}(10+1:(pre_stim_dur/10+rise_time/10)+1);
             end
-            avg_rampup_temp_feedb(izones,:) = mean(z1_rampup_temp_feedb);
+            avg_rampup_temp_feedb(izone,:) = mean(z1_rampup_temp_feedb);
         case 2
-            for istim = 1:stim_num
-                z2_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izones}(10:(pre_stim_dur+rise_time/10));
+            for istim = 1:istim
+                z2_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izone}(10+1:(pre_stim_dur/10+rise_time/10)+1);
             end
-            avg_rampup_temp_feedb(izones,:) = mean(z2_rampup_temp_feedb);
+            avg_rampup_temp_feedb(izone,:) = mean(z2_rampup_temp_feedb);
         case 3
-            for istim = 1:stim_num
-                z3_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izones}(10:(pre_stim_dur+rise_time/10));
+            for istim = 1:istim
+                z3_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izone}(10+1:(pre_stim_dur/10+rise_time/10)+1);
             end
-            avg_rampup_temp_feedb(izones,:) = mean(z3_rampup_temp_feedb);
+            avg_rampup_temp_feedb(izone,:) = mean(z3_rampup_temp_feedb);
         case 4
-            for istim = 1:stim_num
-                z4_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izones}(10:(pre_stim_dur+rise_time/10));
+            for istim = 1:istim
+                z4_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izone}(10+1:(pre_stim_dur/10+rise_time/10)+1);
             end
-            avg_rampup_temp_feedb(izones,:) = mean(z4_rampup_temp_feedb);
+            avg_rampup_temp_feedb(izone,:) = mean(z4_rampup_temp_feedb);
         case 5
-            for istim = 1:stim_num
-                z5_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izones}(10:(pre_stim_dur+rise_time/10));
+            for istim = 1:istim
+                z5_rampup_temp_feedb(istim,:) = temperature_feedback{istim,izone}(10+1:(pre_stim_dur/10+rise_time/10)+1);
             end
-            avg_rampup_temp_feedb(izones,:) = mean(z5_rampup_temp_feedb);
+            avg_rampup_temp_feedb(izone,:) = mean(z5_rampup_temp_feedb);
     end
 end
 
 % warning if slopes are below tolerance level
 ramp_tolerance = 0.02; % 2% arbitrary
 
-for izones = 1:zones
-    zone_mdlup{izones} = fitlm(x_rampup, avg_rampup_temp_feedb(izones,:));
-    zone_slope_up(izones) = round(table2array(zone_mdlup{izones}.Coefficients(2,1))*1000);
-    if zone_slope_up(1,izones) >= ramp_up*(1-ramp_tolerance)
-        mess_rampup{izones} = strcat(['ramp up @ zones ',num2str(izones),' is reached: ',num2str(round(avg_slope_up(1,izones))),' °C/s']);
-        disp(mess_rampup{izones})
+for izone = 1:zones
+    zone_mdlup{izone} = fitlm(x_rampup, avg_rampup_temp_feedb(izone,:));
+    zone_slope_up(izone) = round(table2array(zone_mdlup{izone}.Coefficients(2,1))*1000);
+    if zone_slope_up(1,izone) >= ramp_up*(1-ramp_tolerance)
+        mess_rampup{izone} = strcat(['ramp up @ zones ',num2str(izone),' is reached: ',num2str(round(avg_slope_up(1,izone))),' °C/s']);
+        disp(mess_rampup{izone})
     else
-        mess_rampup{izones} = strcat(['WARNING! ramp up @ zone ',num2str(izones),' is too low: ',num2str(round(avg_slope_up(1,izones))),' °C/s']);
-        disp(mess_rampup{izones})
+        mess_rampup{izone} = strcat(['WARNING! ramp up @ zone ',num2str(izone),' is too low: ',num2str(round(avg_slope_up(1,izone))),' °C/s']);
+        disp(mess_rampup{izone})
     end
 end
 
@@ -373,22 +373,50 @@ disp(' ')
 %% plot linear regression for each zone
 
 %% overshoot
-for stim_num = 1:stim_number
-    for izones = 1:zones
-        overshoot(stim_num,izones) = temperature_feedback{stim_num,izones}(pre_stim_dur+1+rise_time/10);
-        avg_overshoot(1,izones) = mean(overshoot(:,izones));
-        std_overshoot(1,izones) = std(overshoot(:,izones));
+% extract temperature at 3 samples around expected max
+
+for izone = 1:zones
+    switch izone
+        case 1
+            for istim = 1:stim_number
+                z1_overshoot_range(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+1+rise_time/10)-1:(pre_stim_dur/10+1+rise_time/10)+2);
+            end
+            avg_overshoot_range(izone,:) = mean(z1_overshoot_range);
+        case 2
+            for istim = 1:stim_number
+                z2_overshoot_range(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+1+rise_time/10)-1:(pre_stim_dur/10+1+rise_time/10)+2);
+            end
+            avg_overshoot_range(izone,:) = mean(z2_overshoot_range);
+        case 3
+            for istim = 1:stim_number
+                z3_overshoot_range(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+1+rise_time/10)-1:(pre_stim_dur/10+1+rise_time/10)+2);
+            end
+            avg_overshoot_range(izone,:) = mean(z3_overshoot_range);
+        case 4
+            for istim = 1:stim_number
+                z4_overshoot_range(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+1+rise_time/10)-1:(pre_stim_dur/10+1+rise_time/10)+2);
+            end
+            avg_overshoot_range(izone,:) = mean(z4_overshoot_range);
+        case 5
+            for istim = 1:stim_number
+                z5_overshoot_range(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+1+rise_time/10)-1:(pre_stim_dur/10+1+rise_time/10)+2);
+            end
+            avg_overshoot_range(izone,:) = mean(z5_overshoot_range);
     end
 end
 
+% avg_overshoot(1,izone) = mean(overshoot(:,izone));
+% std_overshoot(1,izone) = std(overshoot(:,izone));
+
+
 % warning
-for izones = 1:zones
-    if avg_overshoot(1,izones)- target_temp > 1
-        mess_overshoot{izones} = strcat(['WARNING! max temperature ',num2str(avg_overshoot(1,izones)- target_temp),'°C above target temperature @ zone ',num2str(izones)]);
-        disp(mess_overshoot{izones});
+for izone = 1:zones
+    if avg_overshoot(1,izone)- target_temp > 1
+        mess_overshoot{izone} = strcat(['WARNING! max temperature ',num2str(avg_overshoot(1,izone)- target_temp),'°C above target temperature @ zone ',num2str(izone)]);
+        disp(mess_overshoot{izone});
     else
-        mess_overshoot{izones} = strcat(['overshoot @ zone ',num2str(izones),' below 1°C']);
-        disp(mess_overshoot{izones});
+        mess_overshoot{izone} = strcat(['overshoot @ zone ',num2str(izone),' below 1°C']);
+        disp(mess_overshoot{izone});
     end
 end
 
@@ -404,28 +432,28 @@ test.results.max_std_zone_overshoot = max_std_zone_overshoot;
 disp(' ')
 
 %%  target temperature
-for stim_num = 1:stim_number
-    for izones = 1:zones
+for istim = 1:stim_number
+    for izone = 1:zones
         for bins = 1:(plateau_time/10)-1
-            plateau_temp{stim_num,izones}(bins) = temperature_feedback{stim_num,izones}(pre_stim_dur+bins+1+rise_time/10); % excluding overshoot
-            sd_plateau_temp(stim_num,izones) = std(plateau_temp{stim_num,izones});
-            avg_plateau_temp(stim_num,izones) = mean(plateau_temp{stim_num,izones});
+            plateau_temp{istim,izone}(bins) = temperature_feedback{istim,izone}(pre_stim_dur+bins+1+rise_time/10); % excluding overshoot
+            sd_plateau_temp(istim,izone) = std(plateau_temp{istim,izone});
+            avg_plateau_temp(istim,izone) = mean(plateau_temp{istim,izone});
         end
     end
 end
-for izones = 1:zones
-    avg_sd_plateau_temp(1,izones) = round(mean(sd_plateau_temp(:,izones)),2);
-    avg_stim_plateau_temp(1,izones) = round(mean(avg_plateau_temp(:,izones)),1);
+for izone = 1:zones
+    avg_sd_plateau_temp(1,izone) = round(mean(sd_plateau_temp(:,izone)),2);
+    avg_stim_plateau_temp(1,izone) = round(mean(avg_plateau_temp(:,izone)),1);
 end
 
 % warning per zone
-for izones = 1:zones
-    if avg_sd_plateau_temp(1,izones) <= 0.2 % 0.2°C given the recovery after overshoot (0.1°C relative accuracy of the TCS)
-        mess_plateau_temp{izones} = strcat(['plateau temperature is steady @ zone ',num2str(izones)]);
-        disp(mess_plateau_temp{izones})
+for izone = 1:zones
+    if avg_sd_plateau_temp(1,izone) <= 0.2 % 0.2°C given the recovery after overshoot (0.1°C relative accuracy of the TCS)
+        mess_plateau_temp{izone} = strcat(['plateau temperature is steady @ zone ',num2str(izone)]);
+        disp(mess_plateau_temp{izone})
     else
-        mess_plateau_temp{izones} = strcat(['WARNING! zone ',num2str(izones),' plateau temperature is not constant!']);
-        disp(mess_plateau_temp{izones})
+        mess_plateau_temp{izone} = strcat(['WARNING! zone ',num2str(izone),' plateau temperature is not constant!']);
+        disp(mess_plateau_temp{izone})
     end
 end
 
@@ -449,24 +477,24 @@ disp(' ')
 x_rampdwn = xvalues(1:fall_time/10+1);
 
 %%% variability at trial level %%%
-for izones = 1:zones
-    for stim_num = 1:stim_number
-        rampdwn{stim_num,izones} = temperature_feedback{stim_num,izones}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
-        mdldwn{stim_num,izones} = fitlm(x_rampdwn, rampdwn{stim_num,izones});
-        trial_slope_dwn(stim_num,izones) = abs(round(table2array(mdldwn{stim_num,izones}.Coefficients(2,1))*1000));
+for izone = 1:zones
+    for istim = 1:stim_number
+        rampdwn{istim,izone} = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+        mdldwn{istim,izone} = fitlm(x_rampdwn, rampdwn{istim,izone});
+        trial_slope_dwn(istim,izone) = abs(round(table2array(mdldwn{istim,izone}.Coefficients(2,1))*1000));
     end
 end
-for izones = 1:zones
-    avg_slope_dwn(1,izones) = mean(trial_slope_dwn(:,izones));
-    std_slope_dwn(1,izones) = std(trial_slope_dwn(:,izones));
+for izone = 1:zones
+    avg_slope_dwn(1,izone) = mean(trial_slope_dwn(:,izone));
+    std_slope_dwn(1,izone) = std(trial_slope_dwn(:,izone));
 end
 
 % find the zone with slowest slope
 [min_slope_dwn, min_zone_dwn] = min(avg_slope_dwn);
 
 % find the zone with highest slope variability
-for izones = 1:zones
-    std_slope_dwn(1,izones) = std(trial_slope_dwn(:,izones));
+for izone = 1:zones
+    std_slope_dwn(1,izone) = std(trial_slope_dwn(:,izone));
 end
 [max_std_slope_dwn, max_std_zone_dwn] = max(std_slope_dwn);
 
@@ -476,47 +504,47 @@ test.results.zone_min_slope_dwn = [min_slope_dwn, min_zone_dwn];
 test.results.zone_max_std_slope_dwn = [max_std_slope_dwn, max_std_zone_dwn];
 
 %%% estimation at zone level on averaged trials %%%
-for izones = 1:zones
-    switch izones
+for izone = 1:zones
+    switch izone
         case 1
-            for istim = 1:stim_num
-                z1_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izones}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+            for istim = 1:istim
+                z1_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
             end
-            avg_rampdwn_temp_feedb(izones,:) = mean(z1_rampdwn_temp_feedb);
+            avg_rampdwn_temp_feedb(izone,:) = mean(z1_rampdwn_temp_feedb);
         case 2
-            for istim = 1:stim_num
-                z2_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izones}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+            for istim = 1:istim
+                z2_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
             end
-            avg_rampdwn_temp_feedb(izones,:) = mean(z2_rampdwn_temp_feedb);
+            avg_rampdwn_temp_feedb(izone,:) = mean(z2_rampdwn_temp_feedb);
         case 3
-            for istim = 1:stim_num
-                z3_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izones}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+            for istim = 1:istim
+                z3_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
             end
-            avg_rampdwn_temp_feedb(izones,:) = mean(z3_rampdwn_temp_feedb);
+            avg_rampdwn_temp_feedb(izone,:) = mean(z3_rampdwn_temp_feedb);
         case 4
-            for istim = 1:stim_num
-                z4_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izones}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+            for istim = 1:istim
+                z4_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
             end
-            avg_rampdwn_temp_feedb(izones,:) = mean(z4_rampdwn_temp_feedb);
+            avg_rampdwn_temp_feedb(izone,:) = mean(z4_rampdwn_temp_feedb);
         case 5
-            for istim = 1:stim_num
-                z5_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izones}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+            for istim = 1:istim
+                z5_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
             end
-            avg_rampdwn_temp_feedb(izones,:) = mean(z5_rampdwn_temp_feedb);
+            avg_rampdwn_temp_feedb(izone,:) = mean(z5_rampdwn_temp_feedb);
     end
 end
 
 % warning if slopes are below tolerance level
 ramp_tolerance = 0.02; % 2% arbitrary
-for izones = 1:zones
-    zone_mdldwn{izones} = fitlm(x_rampdwn, avg_rampdwn_temp_feedb(izones,:));
-    zone_slope_dwn(izones) = abs(round(table2array(zone_mdldwn{izones}.Coefficients(2,1))*1000));
-    if zone_slope_dwn(1,izones) >= ramp_down*(1-ramp_tolerance)
-        mess_rampdwn{izones} = strcat(['ramp down @ zones ',num2str(izones),' is reached: ',num2str(round(avg_slope_dwn(1,izones))),' °C/s']);
-        disp(mess_rampdwn{izones})
+for izone = 1:zones
+    zone_mdldwn{izone} = fitlm(x_rampdwn, avg_rampdwn_temp_feedb(izone,:));
+    zone_slope_dwn(izone) = abs(round(table2array(zone_mdldwn{izone}.Coefficients(2,1))*1000));
+    if zone_slope_dwn(1,izone) >= ramp_down*(1-ramp_tolerance)
+        mess_rampdwn{izone} = strcat(['ramp down @ zones ',num2str(izone),' is reached: ',num2str(round(avg_slope_dwn(1,izone))),' °C/s']);
+        disp(mess_rampdwn{izone})
     else
-        mess_rampdwn{izones} = strcat(['WARNING! ramp down @ zone ',num2str(izones),' is too low: ',num2str(round(avg_slope_dwn(1,izones))),' °C/s']);
-        disp(mess_rampdwn{izones})
+        mess_rampdwn{izone} = strcat(['WARNING! ramp down @ zone ',num2str(izone),' is too low: ',num2str(round(avg_slope_dwn(1,izone))),' °C/s']);
+        disp(mess_rampdwn{izone})
     end
 end
 
@@ -534,44 +562,44 @@ fprintf(fidLog,'TEST: %s \n\nPackage version: %s \n\nDate and time: %s \n\nUser 
 % write results in text file
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'--------------- \n RESULTS \n baseline pre stim:');
-for izones = 1:zones
+for izone = 1:zones
     fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-    fprintf(fidLog,'\n %s',mess_baseline_pre{izones});
+    fprintf(fidLog,'\n %s',mess_baseline_pre{izone});
 end
 fprintf(fidLog,'\n Highest variablility at zone %d \n',zone_pre);
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n baseline post stim:');
-for izones = 1:zones
+for izone = 1:zones
     fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-    fprintf(fidLog,'\n %s',mess_baseline_pst{izones});
+    fprintf(fidLog,'\n %s',mess_baseline_pst{izone});
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n');
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n ramp up:');
-for izones = 1:zones
+for izone = 1:zones
     fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-    fprintf(fidLog,'\n %s',mess_rampup{izones});
+    fprintf(fidLog,'\n %s',mess_rampup{izone});
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n');
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n overshoot:');
-for izones = 1:zones
+for izone = 1:zones
     fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-    fprintf(fidLog,'\n %s',mess_overshoot{izones});
+    fprintf(fidLog,'\n %s',mess_overshoot{izone});
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n');
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n ramp down:');
-for izones = 1:zones
+for izone = 1:zones
     fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-    fprintf(fidLog,'\n %s',mess_rampdwn{izones});
+    fprintf(fidLog,'\n %s',mess_rampdwn{izone});
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n');

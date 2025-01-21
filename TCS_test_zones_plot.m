@@ -11,13 +11,13 @@ zones = 5;
 
 F1 = figure('color','w','Position',[0,0,1000,900]);
 color_plot = {[0,0.4470,0.7410],[0.85,0.325,0.098],[0.929,0.694,0.125],[0.494,0.184,0.556],[0.466,0.674,0.188]};
-xvalues = (1:length(temperature_feedback{stim_number,zones}))*10;
+xvalues = ((1:length(temperature_feedback{stim_number,zones}))*10)-10;
 
 % plot theoretical stimulation profil (adding of 10 ms to account for
 % feedback/stimulation delay of the TCS2)
 % x_val = [10 (10+test.param.pre_stim_dur) (10+test.param.pre_stim_dur+test.param.rise_time) (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time)...
 %     (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time+test.param.fall_time) (test.param.pre_stim_dur+test.param.rise_time+test.param.plateau_time+test.param.fall_time+test.param.pst_stim_dur)];
-x_val = cumsum([10 test.param.pre_stim_dur test.param.rise_time test.param.plateau_time test.param.fall_time test.param.pst_stim_dur]);
+x_val = cumsum([0 test.param.pre_stim_dur test.param.rise_time test.param.plateau_time test.param.fall_time test.param.pst_stim_dur]);
 y_val = [test.param.pre_stim_temp test.param.pre_stim_temp test.param.target_temp test.param.target_temp test.param.pre_stim_temp test.param.pre_stim_temp];
 
 plot(x_val,y_val,'--m','LineWidth',1.5)
