@@ -23,35 +23,34 @@
 
 function TCS_test_zones
 
-% GUI for parameters
-prompt = {'\fontsize{12} User Name :','\fontsize{12} Baseline temperature (°C) :', '\fontsize{12} Target temperature (from 0 to 65°C) :',...
-        '\fontsize{12} Duration (rise time + plateau in ms) : ',...
-        '\fontsize{12} Speed ramp-up (°C/s) : ', '\fontsize{12}  Speed ramp-down (°C/s) : ',...
-        '\fontsize{12} For profil segment : Rise time (ms) : ',...
-        '\fontsize{12} For profil segment : Plateau (ms) : ',...
-        '\fontsize{12} For profil segment : Fall time (to baseline temperature in ms) : ',...
-        '\fontsize{12} Which TCS (name) ?', '\fontsize{12} Which probe (name) ?',...
-        '\fontsize{12} Enter comments'};
+%% GUI for parameters
+prompt = {'\fontsize{12} User Name :','\fontsize{12} Which TCS (name) :',...
+    '\fontsize{12} Which probe (name) :','\fontsize{12} Enter comments :',...
+    '\fontsize{12} Neutral temperature (°C) :','\fontsize{12} Target temperature (°C) :',... 
+    '\fontsize{12} Duration (rise time + plateau in ms) : ',...
+    '\fontsize{12} Speed ramp-up (°C/s) : ', '\fontsize{12}  Speed ramp-down (°C/s) : ',...
+    '\fontsize{12} For profil segment : Rise time (ms) : ',...
+    '\fontsize{12} For profil segment : Plateau (ms) : ',...
+    '\fontsize{12} For profil segment : Fall time (to baseline temperature in ms) : '};
 dlgtitle = 'Heat stimulation parameters';
 opts.Interpreter = 'tex';
 dims = repmat([1 80],12,1);
-definput = {'', '32', '62', '300', '300', '300', '', '', '', '', '', 'none'};
-
+definput = {'', '', '', 'none', '32', '62', '300', '300', '300', '', '', ''};
 info = inputdlg(prompt,dlgtitle,dims,definput,opts);
 user_name = char(info(1));
-baseline_temp = str2double(info(2)); % °C
-target_temp = str2double(info(3)); % °C
-duration = str2double(info(4)); % rise time + plateau (ms)
-ramp_up = str2double(info(5)); % °C/s
-ramp_down = str2double(info(6)); % °C/s
-rise_time = str2double(info(7)); % ms
-plateau_time = str2double(info(8)); % ms
-fall_time = str2double(info(9)); % ms
-TCS_name = char(info(10));
+TCS_name = char(info(2));
 TCS_name = strrep(TCS_name,' ','');
-probe_name = char(info(11));
+probe_name = char(info(3));
 probe_name = strrep(probe_name,' ','');
-comments = info(12);
+comments = char(info(4));
+baseline_temp = str2double(info(5)); % °C
+target_temp = str2double(info(6)); % °C
+duration = str2double(info(7)); % ms
+ramp_up = str2double(info(8)); % °C/s
+ramp_down = str2double(info(9)); % °C/s
+rise_time = str2double(info(10)); % ms
+plateau_time = str2double(info(11)); % ms
+fall_time = str2double(info(12)); % ms
 
 % number of stimuli
 stim_number = 10;
@@ -100,11 +99,10 @@ experiment = 'test_TCS2';
 % make unique texte and mat filenames
 txt_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.txt']);
 mat_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.mat']);
-% default files will be save on the desktop (alternatively choice where to
-% % save the outcomes)
-% chosen_dir = uigetdir(current_folder);
-% savePath = chosen_dir;
-savePath = 'C:\Users\Nocions\Desktop';
+% results files will be save in the folder of your choice
+current_folder = pwd;
+chosen_dir = uigetdir(current_folder);
+savePath = chosen_dir;
 
 %%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
 test = struct;
@@ -140,9 +138,11 @@ ver = tcs2.get_version;
 % check battery level and confirm
 clc
 tcs2.get_battery(1)
-disp('BATTERY OK ?')
-disp('press key to continue !')
-pause()
+resp = input(strcat(['BATTERY OK ? [y/n] ']),'s');
+if strcmp(resp,'n')
+    return
+else
+end
 
 % set all active areas
 areas = 11111;
@@ -175,14 +175,19 @@ temperature_feedback = cell(stim_number,zones);
 
 for stim_num = 1:stim_number
     clc
-    disp('Attention ! / be ready !')
+    disp('Attention ! / be ready ! PUT the probe on the gel pad.')
+    if stim_num == 1
+    disp('PRESS ANY KEY TO START STIMULATION.')
+    pause()
+    else
+    end
     pause(1.5)
     tcs2.stimulate
     disp(strcat(['stimulation #',num2str(stim_num),' /',num2str(stim_number),' sent'])) 
     pause(1)
     clc
     if stim_num < 10
-        disp(strcat(['move the probe for next stimulus']))
+        disp(strcat(['MOVE the probe for next stimulus']))
     elseif stim_num > 9
         disp(strcat(['stimulations done !']))
     end
