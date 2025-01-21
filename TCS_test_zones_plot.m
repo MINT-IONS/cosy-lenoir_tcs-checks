@@ -2,14 +2,16 @@
 
 % load the data from the test routine TCS_test_zones.m
 load('TCS2_D_test_1_12-16-2024-14-24-4.mat','test')
+
+%%
 temperature_feedback = test.results.feedback;
 
-stim_num = 10;
+stim_number = 10;
 zones = 5;
 
 F1 = figure('color','w','Position',[0,0,1000,900]);
 color_plot = {[0,0.4470,0.7410],[0.85,0.325,0.098],[0.929,0.694,0.125],[0.494,0.184,0.556],[0.466,0.674,0.188]};
-xvalues = (1:length(temperature_feedback{stim_num,zones}))*10;
+xvalues = (1:length(temperature_feedback{stim_number,zones}))*10;
 
 % plot theoretical stimulation profil (adding of 10 ms to account for
 % feedback/stimulation delay of the TCS2)
@@ -24,46 +26,47 @@ hold on
 for izones = 1:zones
     switch izones
         case 1
-            for istim = 1:stim_num
+            for istim = 1:stim_number
                 z1_temperature_feedback(istim,:) = temperature_feedback{istim,izones};
             end
             avg_temp_feedb(izones,:) = mean(z1_temperature_feedback);
         case 2
-            for istim = 1:stim_num
+            for istim = 1:stim_number
                 z2_temperature_feedback(istim,:) = temperature_feedback{istim,izones};
             end
             avg_temp_feedb(izones,:) = mean(z2_temperature_feedback);
         case 3
-            for istim = 1:stim_num
+            for istim = 1:stim_number
                 z3_temperature_feedback(istim,:) = temperature_feedback{istim,izones};
             end
             avg_temp_feedb(izones,:) = mean(z3_temperature_feedback);
         case 4
-            for istim = 1:stim_num
+            for istim = 1:stim_number
                 z4_temperature_feedback(istim,:) = temperature_feedback{istim,izones};
             end
             avg_temp_feedb(izones,:) = mean(z4_temperature_feedback);
         case 5
-            for istim = 1:stim_num
+            for istim = 1:stim_number
                 z5_temperature_feedback(istim,:) = temperature_feedback{istim,izones};
             end
             avg_temp_feedb(izones,:) = mean(z5_temperature_feedback);
     end
 end
-for izones = 1:zones
-switch izones
-    case 1
-    avg_temp_feedb(izones,:) = z1_temperature_feedback;
-    case 2
-        avg_temp_feedb(izones,:) = z2_temperature_feedback;
-    case 3
-        avg_temp_feedb(izones,:) = z3_temperature_feedback;
-    case 4
-        avg_temp_feedb(izones,:) = z4_temperature_feedback;
-    case 5
-        avg_temp_feedb(izones,:) = z5_temperature_feedback;
-end
-end
+% % if 1 single stim
+% for izones = 1:zones
+% switch izones
+%     case 1
+%     avg_temp_feedb(izones,:) = z1_temperature_feedback;
+%     case 2
+%         avg_temp_feedb(izones,:) = z2_temperature_feedback;
+%     case 3
+%         avg_temp_feedb(izones,:) = z3_temperature_feedback;
+%     case 4
+%         avg_temp_feedb(izones,:) = z4_temperature_feedback;
+%     case 5
+%         avg_temp_feedb(izones,:) = z5_temperature_feedback;
+% end
+% end
 for izones = 1:zones
     plot(xvalues,avg_temp_feedb(izones,:),'Color',color_plot{izones},'LineWidth',1)
     hold on
@@ -91,12 +94,12 @@ y_valup = [test.param.pre_stim_temp test.param.pre_stim_temp test.param.target_t
 F2 = figure('color','w','Position',[0,0,1000,900]);
 for izones = 1:zones
     subplot(1,5,izones)
-    for stim_num = 1:stim_number
+    for stim_number = 1:stim_numberber
         % plot the estimated data
-        pfit= plot(x_rampup+test.param.pre_stim_dur,mdlup{stim_num,izones}.Fitted,'k','LineWidth',1);
+        pfit= plot(x_rampup+test.param.pre_stim_dur,mdlup{stim_number,izones}.Fitted,'k','LineWidth',1);
         hold on
         % plot the actual data of each trial
-        pobs = plot(xvalues(1:(test.param.pre_stim_dur+test.param.rise_time)/10),temperature_feedback{stim_num,izones}(1:(test.param.pre_stim_dur+test.param.rise_time)/10),'Color',color_plot{izones},'LineWidth',2);
+        pobs = plot(xvalues(1:(test.param.pre_stim_dur+test.param.rise_time)/10),temperature_feedback{stim_number,izones}(1:(test.param.pre_stim_dur+test.param.rise_time)/10),'Color',color_plot{izones},'LineWidth',2);
         hold on
     end
 

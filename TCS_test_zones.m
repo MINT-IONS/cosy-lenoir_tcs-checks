@@ -86,9 +86,9 @@ if isnan(duration)
 else
 end
 
-% add pre and post stimulus periods
-pre_stim_dur = 10;
-pst_stim_dur = 10;
+% add pre and post stimulus periods of 100 ms
+pre_stim_dur = 100;
+pst_stim_dur = 100;
 pre_stim_temp = baseline_temp;
 seg_duration = [pre_stim_dur rise_time plateau_time fall_time pst_stim_dur];
 seg_end_temp = [pre_stim_temp target_temp target_temp baseline_temp baseline_temp];
