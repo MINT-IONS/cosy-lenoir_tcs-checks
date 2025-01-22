@@ -11,7 +11,7 @@ zones = 5;
 
 F1 = figure('color','w','Position',[0,0,1000,900]);
 color_plot = {[0,0.4470,0.7410],[0.85,0.325,0.098],[0.929,0.694,0.125],[0.494,0.184,0.556],[0.466,0.674,0.188]};
-xvalues = ((1:length(temperature_feedback{stim_number,zones}))*10)-10;
+xvalues = ((1:length(temperature_feedback{stim_number,zones}))*10);
 
 % plot theoretical stimulation profil (adding of 10 ms to account for
 % feedback/stimulation delay of the TCS2)

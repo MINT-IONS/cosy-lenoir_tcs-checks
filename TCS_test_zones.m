@@ -56,12 +56,55 @@ fall_time = str2double(info(12)); % ms
 stim_number = 10;
 % active zones of the thermode
 zones = 5;
+% local function roundn for round to be compatible with all Matlab versions
+roundn = @(x,n) round(x.*10.^n)./10.^n;
+
+% TCS communication
+TCS_COM = tcs2.find_com_port;
+pause(0.001)
+serialObj = tcs2.init_serial(TCS_COM);
+pause(0.001)
+
+% verbosity
+tcs2.verbose(1)
+
+% set TCS to mute mode
+tcs2.disable_temperature_feedback
+% empty the serial communication
+tcs2.clear_serial
+
+% get the firmware version number and serial no. of the probe
+TCS_help = tcs2.get_serial_cmd_help;
+serial_number = TCS_help(2:85);
+probe_type = serial_number(end-3:end);
+
+% set the ramp-up and -down limit dependong on the probe
+if strcmp(probe_type, '003')
+    ramp_limit = 300;
+elseif strcmp(probe_type,'008')
+    ramp_limit = 170;
+elseif strcmp(probe_type,'011')
+    ramp_limit = 100;
+end
+
+% get +tcs2 package version
+ver = tcs2.get_version;
+
+% check battery level and confirm
+clc
+tcs2.get_battery(1)
+resp = input(strcat(['BATTERY OK ? [y/n] ']),'s');
+if strcmp(resp,'n')
+    return
+else
+end
 
 % compute the different durations of the stimulation segments 
 if isnan(rise_time)
     rise_time = abs((target_temp-baseline_temp))/(ramp_up/1000);
 elseif ~isnan(rise_time)
     ramp_up = (abs((target_temp-baseline_temp))/rise_time)*1000;
+    % check if heating ramp is within probe limitation
     if ramp_up > 300
         disp('Heating ramp too high! adjust stimulation parameters')
         return
@@ -75,6 +118,7 @@ if isnan(fall_time)
     fall_time = abs((target_temp-baseline_temp))/(ramp_down/1000);
 elseif ~isnan(fall_time)
     ramp_down = (abs((target_temp-baseline_temp))/fall_time)*1000;
+    % check if cooling ramp is within probe limitation
     if ramp_down > 300
         disp('Cooling ramp too high! adjust stimulation parameters')
         return
@@ -119,31 +163,7 @@ test.param.rise_time = rise_time;
 test.param.plateau_time = plateau_time;
 test.param.fall_time = fall_time;
 
-% Initialization and communication
-TCS_COM = tcs2.find_com_port;
-pause(0.001)
-serialObj = tcs2.init_serial(TCS_COM);
-pause(0.001)
-
-% verbosity
-tcs2.verbose(1)
-
-% get the firmware version number and serial no. of the probe
-TCS_help = tcs2.get_serial_cmd_help;
-serial_number = TCS_help(2:95);
-
-% get +tcs2 package version
-ver = tcs2.get_version;
-
-% check battery level and confirm
-clc
-tcs2.get_battery(1)
-resp = input(strcat(['BATTERY OK ? [y/n] ']),'s');
-if strcmp(resp,'n')
-    return
-else
-end
-
+% Initailization of the TCS and stimulation parameters
 % set all active areas
 areas = 11111;
 tcs2.set_active_areas(areas)
@@ -231,8 +251,12 @@ for istim = 1:stim_number
     end
 end
 for izone = 1:zones
+    avg_trial_base_pre(1,izone) = mean(mean_base_pre(:,izone));
     avg_sd_base_pre(1,izone) = mean(sd_base_pre(:,izone));
 end
+avg_trial_base_pre = roundn(avg_trial_base_pre,1);
+avg_sd_base_pre = roundn(avg_sd_base_pre,3);
+
 % warning per zone
 for izone = 1:zones
     if avg_sd_base_pre(1,izone) <= 0.1  % 0.1°C relative accuracy of the TCS
@@ -247,7 +271,7 @@ end
 % find the zone with highest variability
 [avg_sd_zone_pre, zone_pre] = max(avg_sd_base_pre);
 test.results.avg_sd_base_pre = avg_sd_base_pre;
-test.results.mean_base_pre = mean_base_pre;
+test.results.mean_base_pre = avg_trial_base_pre;
 test.results.zone_pre_variability = [avg_sd_zone_pre, zone_pre];
 
 % linebreak in command window
@@ -258,12 +282,15 @@ for istim = 1:stim_number
     for izone = 1:zones
         temp_base_pst{istim,izone} = temperature_feedback{istim,izone}(end-9:end);
         sd_base_pst(istim,izone) = std(temp_base_pst{istim,izone});
-        mean_base_pst(1,izone) = mean(temp_base_pst{istim,izone});
+        mean_base_pst(istim,izone) = mean(temp_base_pst{istim,izone});
     end
 end
 for izone = 1:zones
+    avg_trial_base_pst(1,izone) = mean(mean_base_pst(:,izone));
     avg_sd_base_pst(1,izone) = mean(sd_base_pst(:,izone));
 end
+avg_trial_base_pst = roundn(avg_trial_base_pst,1);
+avg_sd_base_pst = roundn(avg_sd_base_pst,3);
 % warning per zone
 for izone = 1:zones
     if avg_sd_base_pst(1,izone) <= 0.1 % 0.1°C relative accuracy of the TCS
@@ -277,9 +304,8 @@ end
 
 % find the zone with highest variability
 [avg_sd_zone_pst, zone_pst] = max(avg_sd_base_pst);
-
 test.results.avg_sd_base_pst = avg_sd_base_pst;
-test.results.mean_base_pst = mean_base_pst;
+test.results.mean_base_pst = avg_trial_base_pst;
 test.results.zone_pst_variability = [avg_sd_zone_pst, zone_pst];
 
 % linebreak in command window
@@ -296,7 +322,7 @@ for izone = 1:zones
     for istim = 1:stim_number
         rampup{istim,izone} = temperature_feedback{istim,izone}(10+1:(pre_stim_dur/10+rise_time/10)+1);
         mdlup{istim,izone} = fitlm(x_rampup, rampup{istim,izone});
-        trial_slope_up(istim,izone) = round(table2array(mdlup{istim,izone}.Coefficients(2,1))*1000);
+        trial_slope_up(istim,izone) = roundn(table2array(mdlup{istim,izone}.Coefficients(2,1))*1000,1);
     end
 end
 
@@ -304,14 +330,13 @@ for izone = 1:zones
     avg_slope_up(1,izone) = mean(trial_slope_up(:,izone));
     std_slope_up(1,izone) = std(trial_slope_up(:,izone));
 end
+avg_slope_up = roundn(avg_slope_up,1);
+std_slope_up = roundn(std_slope_up,2);
 
 % find the zone with slowest slope
 [min_slope_up, min_zone_up] = min(avg_slope_up);
 
 % find the zone with highest slope variability
-for izone = 1:zones
-    std_slope_up(1,izone) = std(trial_slope_up(:,izone));
-end
 [max_std_slope_up, max_std_zone_up] = max(std_slope_up);
 
 test.results.avg_slope_up = avg_slope_up;
@@ -355,12 +380,12 @@ ramp_tolerance = 0.02; % 2% arbitrary
 
 for izone = 1:zones
     zone_mdlup{izone} = fitlm(x_rampup, avg_rampup_temp_feedb(izone,:));
-    zone_slope_up(izone) = round(table2array(zone_mdlup{izone}.Coefficients(2,1))*1000);
+    zone_slope_up(izone) = roundn(table2array(zone_mdlup{izone}.Coefficients(2,1))*1000,1);
     if zone_slope_up(1,izone) >= ramp_up*(1-ramp_tolerance)
-        mess_rampup{izone} = strcat(['ramp up @ zones ',num2str(izone),' is reached: ',num2str(round(avg_slope_up(1,izone))),' °C/s']);
+        mess_rampup{izone} = strcat(['ramp up @ zones ',num2str(izone),' is reached: ',num2str(roundn(avg_slope_up(1,izone),0)),' °C/s']);
         disp(mess_rampup{izone})
     else
-        mess_rampup{izone} = strcat(['WARNING! ramp up @ zone ',num2str(izone),' is too low: ',num2str(round(avg_slope_up(1,izone))),' °C/s']);
+        mess_rampup{izone} = strcat(['WARNING! ramp up @ zone ',num2str(izone),' is too low: ',num2str(roundn(avg_slope_up(1,izone),0)),' °C/s']);
         disp(mess_rampup{izone})
     end
 end
@@ -373,7 +398,7 @@ disp(' ')
 %% plot linear regression for each zone
 
 %% overshoot
-% extract temperature at 3 samples around expected max
+% extract temperature at 4 samples around expected max
 
 for izone = 1:zones
     switch izone
@@ -405,45 +430,43 @@ for izone = 1:zones
     end
 end
 
-% avg_overshoot(1,izone) = mean(overshoot(:,izone));
-% std_overshoot(1,izone) = std(overshoot(:,izone));
-
+% find max overshoot in range
+for izone = 1:zones
+    [overshoot(izone,1), idx_overshoot(izone,:)] = max(avg_overshoot_range(izone,:));
+end
+overshoot = roundn(overshoot,1);
 
 % warning
 for izone = 1:zones
-    if avg_overshoot(1,izone)- target_temp > 1
-        mess_overshoot{izone} = strcat(['WARNING! max temperature ',num2str(avg_overshoot(1,izone)- target_temp),'°C above target temperature @ zone ',num2str(izone)]);
+    if overshoot(izone,1) - target_temp > 1
+        mess_overshoot{izone} = strcat(['WARNING! max peak temperature ',num2str(overshoot(izone,1) - target_temp),'°C above target temperature @ zone ',num2str(izone)]);
         disp(mess_overshoot{izone});
     else
-        mess_overshoot{izone} = strcat(['overshoot @ zone ',num2str(izone),' below 1°C']);
+        mess_overshoot{izone} = strcat(['overshoot @ zone ',num2str(izone),' acceptable, ',num2str(overshoot(izone,1)),'°C']);
         disp(mess_overshoot{izone});
     end
 end
 
-% variability of overshoot per zone
-[max_std_overshoot, max_std_zone_overshoot] = max(std_overshoot);
-
-test.results.avg_overshoot = avg_overshoot;
-test.results.std_overshoot = std_overshoot;
-test.results.max_std_overshoot = max_std_overshoot;
-test.results.max_std_zone_overshoot = max_std_zone_overshoot;
+test.results.avg_overshoot_range = avg_overshoot_range;
+test.results.overshoot = overshoot;
+test.results.idx_overshoot = idx_overshoot;
 
 % linebreak in command window
 disp(' ')
 
-%%  target temperature
+%%  plateau at target temperature
 for istim = 1:stim_number
     for izone = 1:zones
         for bins = 1:(plateau_time/10)-1
-            plateau_temp{istim,izone}(bins) = temperature_feedback{istim,izone}(pre_stim_dur+bins+1+rise_time/10); % excluding overshoot
+            plateau_temp{istim,izone}(bins) = temperature_feedback{istim,izone}(pre_stim_dur/10+bins+1+rise_time/10); % excluding overshoot
             sd_plateau_temp(istim,izone) = std(plateau_temp{istim,izone});
             avg_plateau_temp(istim,izone) = mean(plateau_temp{istim,izone});
         end
     end
 end
 for izone = 1:zones
-    avg_sd_plateau_temp(1,izone) = round(mean(sd_plateau_temp(:,izone)),2);
-    avg_stim_plateau_temp(1,izone) = round(mean(avg_plateau_temp(:,izone)),1);
+    avg_sd_plateau_temp(1,izone) = roundn(mean(sd_plateau_temp(:,izone)),2);
+    avg_stim_plateau_temp(1,izone) = roundn(mean(avg_plateau_temp(:,izone)),1);
 end
 
 % warning per zone
@@ -479,9 +502,9 @@ x_rampdwn = xvalues(1:fall_time/10+1);
 %%% variability at trial level %%%
 for izone = 1:zones
     for istim = 1:stim_number
-        rampdwn{istim,izone} = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+        rampdwn{istim,izone} = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
         mdldwn{istim,izone} = fitlm(x_rampdwn, rampdwn{istim,izone});
-        trial_slope_dwn(istim,izone) = abs(round(table2array(mdldwn{istim,izone}.Coefficients(2,1))*1000));
+        trial_slope_dwn(istim,izone) = abs(roundn(table2array(mdldwn{istim,izone}.Coefficients(2,1))*1000,1));
     end
 end
 for izone = 1:zones
@@ -508,27 +531,27 @@ for izone = 1:zones
     switch izone
         case 1
             for istim = 1:istim
-                z1_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+                z1_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z1_rampdwn_temp_feedb);
         case 2
             for istim = 1:istim
-                z2_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+                z2_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z2_rampdwn_temp_feedb);
         case 3
             for istim = 1:istim
-                z3_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+                z3_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z3_rampdwn_temp_feedb);
         case 4
             for istim = 1:istim
-                z4_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+                z4_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z4_rampdwn_temp_feedb);
         case 5
             for istim = 1:istim
-                z5_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur+rise_time/10+plateau_time/10):(pre_stim_dur+rise_time/10+plateau_time/10+fall_time/10));
+                z5_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z5_rampdwn_temp_feedb);
     end
@@ -538,12 +561,12 @@ end
 ramp_tolerance = 0.02; % 2% arbitrary
 for izone = 1:zones
     zone_mdldwn{izone} = fitlm(x_rampdwn, avg_rampdwn_temp_feedb(izone,:));
-    zone_slope_dwn(izone) = abs(round(table2array(zone_mdldwn{izone}.Coefficients(2,1))*1000));
+    zone_slope_dwn(izone) = abs(roundn(table2array(zone_mdldwn{izone}.Coefficients(2,1))*1000,1));
     if zone_slope_dwn(1,izone) >= ramp_down*(1-ramp_tolerance)
-        mess_rampdwn{izone} = strcat(['ramp down @ zones ',num2str(izone),' is reached: ',num2str(round(avg_slope_dwn(1,izone))),' °C/s']);
+        mess_rampdwn{izone} = strcat(['ramp down @ zones ',num2str(izone),' is reached: ',num2str(roundn(avg_slope_dwn(1,izone),0)),' °C/s']);
         disp(mess_rampdwn{izone})
     else
-        mess_rampdwn{izone} = strcat(['WARNING! ramp down @ zone ',num2str(izone),' is too low: ',num2str(round(avg_slope_dwn(1,izone))),' °C/s']);
+        mess_rampdwn{izone} = strcat(['WARNING! ramp down @ zone ',num2str(izone),' is too low: ',num2str(roundn(avg_slope_dwn(1,izone),0)),' °C/s']);
         disp(mess_rampdwn{izone})
     end
 end
