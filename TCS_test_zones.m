@@ -52,6 +52,9 @@ rise_time = str2double(info(10)); % ms
 plateau_time = str2double(info(11)); % ms
 fall_time = str2double(info(12)); % ms
 
+%%%%%%%%% 
+
+
 % number of stimuli
 stim_number = 10;
 % active zones of the thermode
@@ -73,18 +76,18 @@ tcs2.disable_temperature_feedback
 % empty the serial communication
 tcs2.clear_serial
 
-% get the firmware version number and serial no. of the probe
+% get the firmware version number, serial no. and type of the probe
 TCS_help = tcs2.get_serial_cmd_help;
 serial_number = TCS_help(2:85);
-probe_type = serial_number(end-3:end);
+probe_type = serial_number(end-2:end);
 
 % set the ramp-up and -down limit dependong on the probe
 if strcmp(probe_type, '003')
     ramp_limit = 300;
-elseif strcmp(probe_type,'008')
-    ramp_limit = 170;
-elseif strcmp(probe_type,'011')
-    ramp_limit = 100;
+elseif strcmp(probe_type, '109')
+    ramp_limit = 75;
+elseif strcmp(probe_type, '111')
+    ramp_limit = 75;
 end
 
 % get +tcs2 package version
@@ -105,8 +108,8 @@ if isnan(rise_time)
 elseif ~isnan(rise_time)
     ramp_up = (abs((target_temp-baseline_temp))/rise_time)*1000;
     % check if heating ramp is within probe limitation
-    if ramp_up > 300
-        disp('Heating ramp too high! adjust stimulation parameters')
+    if ramp_up > ramp_limit
+        disp('Heating ramp too high! adjust stimulation parameters.')
         return
     end
 end
@@ -119,8 +122,8 @@ if isnan(fall_time)
 elseif ~isnan(fall_time)
     ramp_down = (abs((target_temp-baseline_temp))/fall_time)*1000;
     % check if cooling ramp is within probe limitation
-    if ramp_down > 300
-        disp('Cooling ramp too high! adjust stimulation parameters')
+    if ramp_down > ramp_limit
+        disp('Cooling ramp too high! adjust stimulation parameters.')
         return
     end
 end
@@ -145,7 +148,7 @@ txt_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', p
 mat_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.mat']);
 % results files will be save in the folder of your choice
 current_folder = pwd;
-chosen_dir = uigetdir(current_folder);
+chosen_dir = uigetdir(current_folder,'Select folder to save test results');
 savePath = chosen_dir;
 
 %%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
@@ -163,7 +166,7 @@ test.param.rise_time = rise_time;
 test.param.plateau_time = plateau_time;
 test.param.fall_time = fall_time;
 
-% Initailization of the TCS and stimulation parameters
+% Initialization of the TCS and stimulation parameters
 % set all active areas
 areas = 11111;
 tcs2.set_active_areas(areas)
@@ -195,21 +198,21 @@ temperature_feedback = cell(stim_number,zones);
 
 for istim = 1:stim_number
     clc
-    disp('Attention ! / be ready ! PUT the probe on the gel pad.')
     if istim == 1
+    disp('PUT the probe on the gel pad.')
     disp('PRESS ANY KEY TO START STIMULATION.')
     pause()
     else
+        disp('Do not move... Attention ! / Be ready !')
     end
     pause(1.5)
     tcs2.stimulate
     disp(strcat(['stimulation #',num2str(istim),' /',num2str(stim_number),' sent'])) 
     pause(1)
-    clc
     if istim < 10
         disp(strcat(['MOVE the probe for next stimulus']))
     elseif istim > 9
-        disp(strcat(['stimulations done !']))
+        disp('Stimulations done! Results will appear...')
     end
     pause(1.5)
 
@@ -243,6 +246,8 @@ test.results.feedback = temperature_feedback;
 %% Checks
 % pre-stimulus consistency
 clc
+disp('---------- RESULTS : -------------------')
+disp(' ')
 for istim = 1:stim_number
     for izone = 1:zones
         temp_base_pre{istim,izone} = temperature_feedback{istim,izone}(1:10);
@@ -260,10 +265,10 @@ avg_sd_base_pre = roundn(avg_sd_base_pre,3);
 % warning per zone
 for izone = 1:zones
     if avg_sd_base_pre(1,izone) <= 0.1  % 0.1°C relative accuracy of the TCS
-        mess_baseline_pre{izone} = strcat(['zone ',num2str(izone),' neutral temperature pre-stimulus is steady']);
+        mess_baseline_pre{izone} = strcat(['Pre-stimulus neutral temperature @ zone ',num2str(izone), ' is steady']);
         disp(mess_baseline_pre{izone});
     else
-         mess_baseline_pre{izone} = strcat(['WARNING! zone ',num2str(izone),' neutral temperature pre-stimulus is not constant!']);
+         mess_baseline_pre{izone} = strcat(['WARNING! pre-stimulus neutral temperature @ zone ',num2str(izone),' is not steady!']);
         disp(mess_baseline_pre{izone});
     end
 end
@@ -294,10 +299,10 @@ avg_sd_base_pst = roundn(avg_sd_base_pst,3);
 % warning per zone
 for izone = 1:zones
     if avg_sd_base_pst(1,izone) <= 0.1 % 0.1°C relative accuracy of the TCS
-        mess_baseline_pst{izone} = strcat(['zone ',num2str(izone),' neutral temperature post-stimulus is steady']);
+        mess_baseline_pst{izone} = strcat(['Post-stimulus neutral temperature @ zone ',num2str(izone),' is steady']);
         disp(mess_baseline_pst{izone})
     else
-        mess_baseline_pst{izone} = strcat(['WARNING! zone ',num2str(izone),' neutral temperature post-stimulus is not constant!']);
+        mess_baseline_pst{izone} = strcat(['WARNING! Post-stimulus neutral temperature @ zone ',num2str(izone),' is not steady!']);
         disp(mess_baseline_pst{izone})
     end
 end
@@ -382,10 +387,10 @@ for izone = 1:zones
     zone_mdlup{izone} = fitlm(x_rampup, avg_rampup_temp_feedb(izone,:));
     zone_slope_up(izone) = roundn(table2array(zone_mdlup{izone}.Coefficients(2,1))*1000,1);
     if zone_slope_up(1,izone) >= ramp_up*(1-ramp_tolerance)
-        mess_rampup{izone} = strcat(['ramp up @ zones ',num2str(izone),' is reached: ',num2str(roundn(avg_slope_up(1,izone),0)),' °C/s']);
+        mess_rampup{izone} = strcat(['Ramp up @ zone ',num2str(izone),' is reached: ',num2str(roundn(avg_slope_up(1,izone),0)),' °C/s']);
         disp(mess_rampup{izone})
     else
-        mess_rampup{izone} = strcat(['WARNING! ramp up @ zone ',num2str(izone),' is too low: ',num2str(roundn(avg_slope_up(1,izone),0)),' °C/s']);
+        mess_rampup{izone} = strcat(['WARNING! ramp up @ zone ',num2str(izone),' is low: ',num2str(roundn(avg_slope_up(1,izone),0)),' °C/s']);
         disp(mess_rampup{izone})
     end
 end
@@ -438,11 +443,11 @@ overshoot = roundn(overshoot,1);
 
 % warning
 for izone = 1:zones
-    if overshoot(izone,1) - target_temp > 1
-        mess_overshoot{izone} = strcat(['WARNING! max peak temperature ',num2str(overshoot(izone,1) - target_temp),'°C above target temperature @ zone ',num2str(izone)]);
+    if overshoot(izone,1) - target_temp < 0
+        mess_overshoot{izone} = strcat(['WARNING! max peak temperature @ zone ',num2str(izone)',' is ',num2str(overshoot(izone,1) - target_temp),'°C below target temperature']);
         disp(mess_overshoot{izone});
     else
-        mess_overshoot{izone} = strcat(['overshoot @ zone ',num2str(izone),' acceptable, ',num2str(overshoot(izone,1)),'°C']);
+        mess_overshoot{izone} = strcat(['Overshoot @ zone ',num2str(izone),' acceptable, ',num2str(overshoot(izone,1)),'°C']);
         disp(mess_overshoot{izone});
     end
 end
@@ -472,14 +477,23 @@ end
 % warning per zone
 for izone = 1:zones
     if avg_sd_plateau_temp(1,izone) <= 0.2 % 0.2°C given the recovery after overshoot (0.1°C relative accuracy of the TCS)
-        mess_plateau_temp{izone} = strcat(['plateau temperature is steady @ zone ',num2str(izone)]);
+        mess_plateau_temp{izone} = strcat(['Plateau temperature @ zone ',num2str(izone),' is steady']);
         disp(mess_plateau_temp{izone})
     else
-        mess_plateau_temp{izone} = strcat(['WARNING! zone ',num2str(izone),' plateau temperature is not constant!']);
+        mess_plateau_temp{izone} = strcat(['WARNING! plateau temperature @ zone ',num2str(izone),' is not steady!']);
         disp(mess_plateau_temp{izone})
     end
 end
-
+disp(' ')
+for izone = 1:zones
+    if avg_stim_plateau_temp(1,izone) >= target_temp - 0.2
+        mess_plateau_temp{izone} = strcat(['Plateau temperature @ zone ',num2str(izone),' is reached : ',num2str(avg_stim_plateau_temp(1,izone)) ,'°C']);
+        disp(mess_plateau_temp{izone})
+    else
+        mess_plateau_temp{izone} = strcat(['WARNING! plateau temperature @ zone ',num2str(izone),' is not reached : ',num2str(avg_stim_plateau_temp(1,izone)),'°C']);
+        disp(mess_plateau_temp{izone})
+    end
+end
 % find the zone with highest variability
 [avg_sd_zone_plateau, zone_plat] = max(avg_sd_plateau_temp);
 [min_avg_temp_zone_plateau, zone_temp_min] = min(avg_stim_plateau_temp);
@@ -563,10 +577,10 @@ for izone = 1:zones
     zone_mdldwn{izone} = fitlm(x_rampdwn, avg_rampdwn_temp_feedb(izone,:));
     zone_slope_dwn(izone) = abs(roundn(table2array(zone_mdldwn{izone}.Coefficients(2,1))*1000,1));
     if zone_slope_dwn(1,izone) >= ramp_down*(1-ramp_tolerance)
-        mess_rampdwn{izone} = strcat(['ramp down @ zones ',num2str(izone),' is reached: ',num2str(roundn(avg_slope_dwn(1,izone),0)),' °C/s']);
+        mess_rampdwn{izone} = strcat(['Ramp down @ zone ',num2str(izone),' is reached: ',num2str(roundn(avg_slope_dwn(1,izone),0)),' °C/s']);
         disp(mess_rampdwn{izone})
     else
-        mess_rampdwn{izone} = strcat(['WARNING! ramp down @ zone ',num2str(izone),' is too low: ',num2str(roundn(avg_slope_dwn(1,izone),0)),' °C/s']);
+        mess_rampdwn{izone} = strcat(['WARNING! ramp down @ zone ',num2str(izone),' is low: ',num2str(roundn(avg_slope_dwn(1,izone),0)),' °C/s']);
         disp(mess_rampdwn{izone})
     end
 end
@@ -630,10 +644,12 @@ fprintf(fidLog,'\n');
 % save outcomes of the test
 save(fullfile(savePath,mat_filename), 'test')
 fclose all;
+cd(savePath)
 zip(txt_filename(1:end-4),{txt_filename, mat_filename});
 delete(mat_filename, txt_filename)
+cd(current_folder)
 tcs2.close_serial(serialObj)
 
-disp('Data saved in zip file on the destop, please send it to MINT :-)')
+disp('Data saved in zip file, PLEASE SEND IT TO MINT :-)')
 end
 
