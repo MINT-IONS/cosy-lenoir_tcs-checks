@@ -76,7 +76,7 @@ end
 set(gca,'FontSize',12)
 set(gca,'YTick',(test.param.pre_stim_temp:1:test.param.target_temp+3))
 set(gca,'TickDir','out')
-title(strcat(['Probe-',probe_type,' average temperature time course ', '(',num2str(test.param.target_temp),'°C)']),'FontSize',15);
+title(['average temperature time course ', '(',num2str(test.param.target_temp),'°C)'],'FontSize',15);
 L = legend('theoretical','zone 1','zone 2','zone 3','zone 4','zone 5');
 set(L,'Box','off')
 xlabel('time (ms)')
@@ -94,7 +94,7 @@ y_valup = [test.param.pre_stim_temp test.param.pre_stim_temp test.param.target_t
 F2 = figure('color','w','Position',[0,0,1000,900]);
 for izones = 1:zones
     subplot(1,5,izones)
-    for stim_number = 1:stim_number
+    for stim_number = 1:stim_numberber
         % plot the estimated data
         pfit= plot(x_rampup+test.param.pre_stim_dur,mdlup{stim_number,izones}.Fitted,'k','LineWidth',1);
         hold on

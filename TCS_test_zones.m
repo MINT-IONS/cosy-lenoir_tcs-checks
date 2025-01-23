@@ -51,13 +51,13 @@ if strcmp(probe_type, '003')
     definput = {'', '', 'T03', 'none', '30', '60', '', '', '', '100', '200', '100'};
 elseif strcmp(probe_type, '109')
     ramp_limit = 75;
-    definput = {'', '', 'T08', 'none', '30', '51', '500', '75', '75', '', '', ''}; %480 duration
-    tcs2.write_serail('Of3') % set MRI filter to "high"
+    definput = {'', '', 'T08', 'none', '30', '51', '500', '75', '75', '', '200', ''}; %480 duration
+%     tcs2.write_serial('Of3') % set MRI filter to "high"
     pause(0.001)
 elseif strcmp(probe_type, '111')
-    definput = {'', '', 'T11', 'none', '30', '51', '480', '75', '75', '', '', ''};
+    definput = {'', '', 'T11', 'none', '30', '50', '600', '50', '50', '', '200', ''};
     ramp_limit = 75;
-    tcs2.write_serail('Of3') % set MRI filter to "high"
+%     tcs2.write_serial('Of3') % set MRI filter to "high"
     pause(0.001)
 end
 
@@ -142,7 +142,7 @@ else
 end
 % add pre and post stimulus periods of 100 ms
 pre_stim_dur = 100;
-pst_stim_dur = 100;
+pst_stim_dur = 1000;
 pre_stim_temp = baseline_temp;
 seg_duration = [pre_stim_dur rise_time plateau_time down_time pst_stim_dur];
 seg_end_temp = [pre_stim_temp target_temp target_temp baseline_temp baseline_temp];
@@ -189,7 +189,7 @@ tcs2.set_neutral_temperature(baseline_temp);
 pause(0.001)
 
 % set max temperature to 70 C°
-tcs2.set_max_temperature(70); % hidden command to allow stimulation up to 70 C°C !! Not available for all firwmare version.
+% tcs2.set_max_temperature(70); % hidden command to allow stimulation up to 70 C°C !! Not available for all firwmare version.
 pause(0.001)
 
 % set stimulation parameters using stimulation_profile
@@ -221,7 +221,7 @@ for istim = 1:stim_number
     pause(1.5)
     tcs2.stimulate
     disp(strcat(['stimulation #',num2str(istim),' /',num2str(stim_number),' sent'])) 
-    pause(1.5)
+    pause((duration+down_time+pre_stim_dur+pst_stim_dur)/1000)
     if istim < 10
         disp('MOVE the probe for next stimulus')
     elseif istim > 9
@@ -231,7 +231,7 @@ for istim = 1:stim_number
 
     % read temperature_feedback
     temporary = tcs2.read_serial;
-    pause(2)
+    pause(3)
     tcs2.clear_serial;
     
     % extract position of separators in the char temperature data
