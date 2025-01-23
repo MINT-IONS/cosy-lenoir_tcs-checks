@@ -1,68 +1,32 @@
 % tcs2.TCS_test-zones.m  performs the quick routine check of the device.
-% Results are saved in a structure in a .mat file and a summary of parameters and results are saved in a .txt file. Both files are then stored in an archive .zip file. 
+% Results are saved in a structure in a .mat file and a summary of parameters and results are saved in a .txt file.
+% Both files are then stored in an archive .zip file in the folder of your choice. 
 % 
-% This routine works with/is part of the package "+tcs2" version '3.0’
+% This routine works with/is part of the package "+tcs2" version 3.0.
 % 
 % Material needed:
 %         1 experiment laptop (Matlab 2014a or later up to 2023b)
 %         1 TCS2 + probe
+%         1 gel pad?
 % 
-% This routine works for basic stimulation profile typically starting from baseline temperature then reaching a target temperature and then going back to baseline (5 segments in terms of stimulation profile). More complex profil (e.g. sinusoidal stimulation) are not included here.
+% This routine works for basic stimulation profile typically starting from baseline temperature,
+% then reaching a target temperature and then going back to baseline (5 segments in terms of stimulation profile).
+% More complex profil (e.g. sinusoidal stimulation) are not included here.
 % 
 % First: fill in the GUI with stimulation parameters 
-% Second: follow instructions and deliver the stimulations onto the skin, move the probe at each beep!
+% Second: follow instructions and deliver the stimulations onto the skin/gel pad, move the probe at each beep!
 % Third: some basic statistics are provided to assess if the thermode delivered properly the requested heat stimulation. 
-% Fourth: send the output files to MINT !
+% Fourth: send the output files to MINT!
 % 
 % TCS and probe names are A, B, C, D, or E.
 % 
-% Visualization of the results could be easily done using TCS_test_zones_plot.m
 % 
 % Cédric Lenoir, MINT, IoNS, UCLouvain, January 2025
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 function TCS_test_zones
 
-%% GUI for parameters
-prompt = {'\fontsize{12} User Name :','\fontsize{12} Which TCS (name) :',...
-    '\fontsize{12} Which probe (name) :','\fontsize{12} Enter comments :',...
-    '\fontsize{12} Neutral temperature (°C) :','\fontsize{12} Target temperature (°C) :',... 
-    '\fontsize{12} Duration (rise time + plateau in ms) : ',...
-    '\fontsize{12} Speed ramp-up (°C/s) : ', '\fontsize{12}  Speed ramp-down (°C/s) : ',...
-    '\fontsize{12} For profil segment : Rise time (ms) : ',...
-    '\fontsize{12} For profil segment : Plateau (ms) : ',...
-    '\fontsize{12} For profil segment : Fall time (to baseline temperature in ms) : '};
-dlgtitle = 'Heat stimulation parameters';
-opts.Interpreter = 'tex';
-dims = repmat([1 80],12,1);
-definput = {'', '', '', 'none', '32', '62', '300', '300', '300', '', '', ''};
-info = inputdlg(prompt,dlgtitle,dims,definput,opts);
-user_name = char(info(1));
-TCS_name = char(info(2));
-TCS_name = strrep(TCS_name,' ','');
-probe_name = char(info(3));
-probe_name = strrep(probe_name,' ','');
-comments = char(info(4));
-baseline_temp = str2double(info(5)); % °C
-target_temp = str2double(info(6)); % °C
-duration = str2double(info(7)); % ms
-ramp_up = str2double(info(8)); % °C/s
-ramp_down = str2double(info(9)); % °C/s
-rise_time = str2double(info(10)); % ms
-plateau_time = str2double(info(11)); % ms
-fall_time = str2double(info(12)); % ms
-
-%%%%%%%%% 
-
-
-% number of stimuli
-stim_number = 10;
-% active zones of the thermode
-zones = 5;
-% local function roundn for round to be compatible with all Matlab versions
-roundn = @(x,n) round(x.*10.^n)./10.^n;
-
-% TCS communication
+%%% TCS communication
 TCS_COM = tcs2.find_com_port;
 pause(0.001)
 serialObj = tcs2.init_serial(TCS_COM);
@@ -84,9 +48,12 @@ probe_type = serial_number(end-2:end);
 % set the ramp-up and -down limit dependong on the probe
 if strcmp(probe_type, '003')
     ramp_limit = 300;
+    definput = {'', '', 'T03', 'none', '30', '60', '', '', '', '100', '200', '100'};
 elseif strcmp(probe_type, '109')
     ramp_limit = 75;
+    definput = {'', '', 'T08', 'none', '30', '57', '560', '75', '75', '', '', ''};
 elseif strcmp(probe_type, '111')
+    definput = {'', '', 'T11', 'none', '30', '57', '560', '75', '75', '', '', ''};
     ramp_limit = 75;
 end
 
@@ -96,11 +63,49 @@ ver = tcs2.get_version;
 % check battery level and confirm
 clc
 tcs2.get_battery(1)
-resp = input(strcat(['BATTERY OK ? [y/n] ']),'s');
+resp = input('BATTERY OK ? [y/n] ','s');
 if strcmp(resp,'n')
     return
 else
 end
+
+
+%%% GUI for parameters
+prompt = {'\fontsize{12} User Name :','\fontsize{12} Which TCS (name) :',...
+    '\fontsize{12} Which probe (name) :','\fontsize{12} Enter comments :',...
+    '\fontsize{12} Neutral temperature (°C) :','\fontsize{12} Target temperature (°C) :',... 
+    '\fontsize{12} Duration (rise time + plateau in ms) : ',...
+    '\fontsize{12} Speed ramp-up (°C/s) : ', '\fontsize{12}  Speed ramp-down (°C/s) : ',...
+    '\fontsize{12} For profil segment : Rise time (to target temperature in ms) : ',...
+    '\fontsize{12} For profil segment : Plateau (ms) : ',...
+    '\fontsize{12} For profil segment : Down time (to neutral temperature in ms) : '};
+dlgtitle = 'Heat stimulation parameters';
+opts.Interpreter = 'tex';
+dims = repmat([1 80],12,1);
+info = inputdlg(prompt,dlgtitle,dims,definput,opts);
+user_name = char(info(1));
+TCS_name = char(info(2));
+TCS_name = strrep(TCS_name,' ','');
+probe_name = char(info(3));
+probe_name = strrep(probe_name,' ','');
+comments = char(info(4));
+baseline_temp = str2double(info(5)); % °C
+target_temp = str2double(info(6)); % °C
+duration = str2double(info(7)); % ms
+ramp_up = str2double(info(8)); % °C/s
+ramp_down = str2double(info(9)); % °C/s
+rise_time = str2double(info(10)); % ms
+plateau_time = str2double(info(11)); % ms
+down_time = str2double(info(12)); % ms
+
+
+%%% Additional parameters
+% number of stimuli
+stim_number = 10;
+% active zones of the thermode
+zones = 5;
+% local function roundn for round to be compatible with all Matlab versions
+roundn = @(x,n) round(x.*10.^n)./10.^n;
 
 % compute the different durations of the stimulation segments 
 if isnan(rise_time)
@@ -117,10 +122,10 @@ if isnan(plateau_time) && ~isnan(duration)
     plateau_time = duration - rise_time;
 else
 end
-if isnan(fall_time)
-    fall_time = abs((target_temp-baseline_temp))/(ramp_down/1000);
-elseif ~isnan(fall_time)
-    ramp_down = (abs((target_temp-baseline_temp))/fall_time)*1000;
+if isnan(down_time)
+    down_time = abs((target_temp-baseline_temp))/(ramp_down/1000);
+elseif ~isnan(down_time)
+    ramp_down = (abs((target_temp-baseline_temp))/down_time)*1000;
     % check if cooling ramp is within probe limitation
     if ramp_down > ramp_limit
         disp('Cooling ramp too high! adjust stimulation parameters.')
@@ -132,26 +137,7 @@ if isnan(duration)
 else
 end
 
-% add pre and post stimulus periods of 100 ms
-pre_stim_dur = 100;
-pst_stim_dur = 100;
-pre_stim_temp = baseline_temp;
-seg_duration = [pre_stim_dur rise_time plateau_time fall_time pst_stim_dur];
-seg_end_temp = [pre_stim_temp target_temp target_temp baseline_temp baseline_temp];
-
-% create and save outcomes in .mat file
-clockVal = clock; % Current date and time as date vector. [year month day hour minute seconds]
-timestamp = sprintf('%d-%d-%d-%d-%d-%.0f',clockVal(2),clockVal(3),clockVal(1),clockVal(4),clockVal(5),clockVal(6));
-experiment = 'test_TCS2';
-% make unique texte and mat filenames
-txt_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.txt']);
-mat_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.mat']);
-% results files will be save in the folder of your choice
-current_folder = pwd;
-chosen_dir = uigetdir(current_folder,'Select folder to save test results');
-savePath = chosen_dir;
-
-%%%%% add ramps and duration + store when done the parameters and diagnostic results %%%%%
+%%% structure for parameters and results
 test = struct;
 test.param.pre_stim_dur = pre_stim_dur;
 test.param.pst_stim_dur = pst_stim_dur;
@@ -164,9 +150,30 @@ test.param.ramp_up = ramp_up;
 test.param.ramp_down = ramp_down;
 test.param.rise_time = rise_time;
 test.param.plateau_time = plateau_time;
-test.param.fall_time = fall_time;
+test.param.fall_time = down_time;
 
-% Initialization of the TCS and stimulation parameters
+% add pre and post stimulus periods of 100 ms
+pre_stim_dur = 100;
+pst_stim_dur = 100;
+pre_stim_temp = baseline_temp;
+seg_duration = [pre_stim_dur rise_time plateau_time down_time pst_stim_dur];
+seg_end_temp = [pre_stim_temp target_temp target_temp baseline_temp baseline_temp];
+
+
+%%% create paths to save outcomes in .mat and .txt files
+clockVal = clock; % Current date and time as date vector. [year month day hour minute seconds]
+timestamp = sprintf('%d-%d-%d-%d-%d-%.0f',clockVal(2),clockVal(3),clockVal(1),clockVal(4),clockVal(5),clockVal(6));
+experiment = 'test_TCS2';
+% make unique texte and mat filenames
+txt_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.txt']);
+mat_filename = strcat(['TCS2_',sprintf('%s', TCS_name),'_probe_',sprintf('%s', probe_name), '_', sprintf('%s', timestamp),'.mat']);
+% results files will be save in the folder of your choice
+current_folder = pwd;
+chosen_dir = uigetdir(current_folder,'Select folder to save test results');
+savePath = chosen_dir;
+
+
+%%% Initialization of the TCS and stimulation parameters
 % set all active areas
 areas = 11111;
 tcs2.set_active_areas(areas)
@@ -191,7 +198,8 @@ pause(0.001)
 tcs2.enable_temperature_feedback(100)
 pause(0.001)
 
-%% loop to send stimuli
+
+%%% loop to send stimuli
 
 % prepare for storing of temperature data for 5 zones and successive 10 stimulations
 temperature_feedback = cell(stim_number,zones);
@@ -210,7 +218,7 @@ for istim = 1:stim_number
     disp(strcat(['stimulation #',num2str(istim),' /',num2str(stim_number),' sent'])) 
     pause(1)
     if istim < 10
-        disp(strcat(['MOVE the probe for next stimulus']))
+        disp('MOVE the probe for next stimulus')
     elseif istim > 9
         disp('Stimulations done! Results will appear...')
     end
@@ -240,10 +248,8 @@ end
 
 test.results.feedback = temperature_feedback;
 
-%% plot stimulus profil
-% see TCS_test_zones_plot.m
 
-%% Checks
+%%% Checks
 % pre-stimulus consistency
 clc
 disp('---------- RESULTS : -------------------')
@@ -316,13 +322,13 @@ test.results.zone_pst_variability = [avg_sd_zone_pst, zone_pst];
 % linebreak in command window
 disp(' ')
 
-%% Ramp_up speed for each stim and zone
 
+%%% Ramp_up speed for each stim and zone
 % x values for plotting and linear regression
 xvalues = (1:length(temperature_feedback{stim_number,zones}))*10;
 x_rampup = xvalues(1:rise_time/10+1);
 
-%%% variability at trial level %%%
+% variability at trial level
 for izone = 1:zones
     for istim = 1:stim_number
         rampup{istim,izone} = temperature_feedback{istim,izone}(10+1:(pre_stim_dur/10+rise_time/10)+1);
@@ -349,7 +355,7 @@ test.results.std_slope_up = std_slope_up;
 test.results.zone_min_slope_up = [min_slope_up, min_zone_up];
 test.results.zone_max_std_slope_up = [max_std_slope_up, max_std_zone_up];
 
-%%% estimation at zone level on averaged trials %%%
+% estimation at zone level on averaged trials
 for izone = 1:zones
     switch izone
         case 1
@@ -400,9 +406,8 @@ test.results.zone_slope_up = zone_slope_up;
 % linebreak in command window
 disp(' ')
 
-%% plot linear regression for each zone
 
-%% overshoot
+%%% overshoot
 % extract temperature at 4 samples around expected max
 
 for izone = 1:zones
@@ -459,7 +464,8 @@ test.results.idx_overshoot = idx_overshoot;
 % linebreak in command window
 disp(' ')
 
-%%  plateau at target temperature
+
+%%%  plateau at target temperature
 for istim = 1:stim_number
     for izone = 1:zones
         for bins = 1:(plateau_time/10)-1
@@ -486,7 +492,7 @@ for izone = 1:zones
 end
 disp(' ')
 for izone = 1:zones
-    if avg_stim_plateau_temp(1,izone) >= target_temp - 0.2
+    if avg_stim_plateau_temp(1,izone) >= target_temp - 0.2 % 0.2°C (0.1°C relative accuracy of the TCS)
         mess_plateau_temp{izone} = strcat(['Plateau temperature @ zone ',num2str(izone),' is reached : ',num2str(avg_stim_plateau_temp(1,izone)) ,'°C']);
         disp(mess_plateau_temp{izone})
     else
@@ -508,15 +514,15 @@ test.results.max_avg_temp_zone_plateau = max_avg_temp_zone_plateau;
 % linebreak in command window
 disp(' ')
 
-%% Ramp_down speed for each zone
 
+%%% Ramp_down speed for each zone
 % x values for plotting and linear regression
-x_rampdwn = xvalues(1:fall_time/10+1);
+x_rampdwn = xvalues(1:down_time/10+1);
 
-%%% variability at trial level %%%
+% variability at trial level
 for izone = 1:zones
     for istim = 1:stim_number
-        rampdwn{istim,izone} = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
+        rampdwn{istim,izone} = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+down_time/10+1));
         mdldwn{istim,izone} = fitlm(x_rampdwn, rampdwn{istim,izone});
         trial_slope_dwn(istim,izone) = abs(roundn(table2array(mdldwn{istim,izone}.Coefficients(2,1))*1000,1));
     end
@@ -540,32 +546,32 @@ test.results.std_slope_dwn = std_slope_dwn;
 test.results.zone_min_slope_dwn = [min_slope_dwn, min_zone_dwn];
 test.results.zone_max_std_slope_dwn = [max_std_slope_dwn, max_std_zone_dwn];
 
-%%% estimation at zone level on averaged trials %%%
+% estimation at zone level on averaged trials
 for izone = 1:zones
     switch izone
         case 1
             for istim = 1:istim
-                z1_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
+                z1_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+down_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z1_rampdwn_temp_feedb);
         case 2
             for istim = 1:istim
-                z2_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
+                z2_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+down_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z2_rampdwn_temp_feedb);
         case 3
             for istim = 1:istim
-                z3_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
+                z3_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+down_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z3_rampdwn_temp_feedb);
         case 4
             for istim = 1:istim
-                z4_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
+                z4_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+down_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z4_rampdwn_temp_feedb);
         case 5
             for istim = 1:istim
-                z5_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+fall_time/10+1));
+                z5_rampdwn_temp_feedb(istim,:) = temperature_feedback{istim,izone}((pre_stim_dur/10+rise_time/10+plateau_time/10+1):(pre_stim_dur/10+rise_time/10+plateau_time/10+down_time/10+1));
             end
             avg_rampdwn_temp_feedb(izone,:) = mean(z5_rampdwn_temp_feedb);
     end
@@ -590,13 +596,12 @@ test.results.zone_slope_dwn = zone_slope_dwn;
 % linebreak in command window
 disp(' ')
 
-%% save
-% write param in text file
+
+%%% write param in text file
 fidLog = fopen(fullfile(savePath,txt_filename),'w');
 fprintf(fidLog,'TEST: %s \n\nPackage version: %s \n\nDate and time: %s \n\nUser name: %s \n\nTCS: %s \n\nProbe name: %s \n\n%s \n\nBaseline temperature: %s°C \n\nTarget temperature: %s°C \n\nRamp-up speed: %s°C/s \n\nRamp-down: %s°C/s \n\nNotes: %s \n\n',...
     experiment, ver, timestamp, user_name, TCS_name, probe_name, serial_number, num2str(baseline_temp), num2str(target_temp), num2str(ramp_up), num2str(ramp_down), char(comments));
 
-% write results in text file
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'--------------- \n RESULTS \n baseline pre stim:');
 for izone = 1:zones
@@ -641,7 +646,8 @@ end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n');
 
-% save outcomes of the test
+
+%%% save outcomes of the test
 save(fullfile(savePath,mat_filename), 'test')
 fclose all;
 cd(savePath)
@@ -652,4 +658,3 @@ tcs2.close_serial(serialObj)
 
 disp('Data saved in zip file, PLEASE SEND IT TO MINT :-)')
 end
-
