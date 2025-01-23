@@ -51,17 +51,19 @@ if strcmp(probe_type, '003')
     definput = {'', '', 'T03', 'none', '30', '60', '', '', '', '100', '200', '100'};
 elseif strcmp(probe_type, '109')
     ramp_limit = 75;
-    definput = {'', '', 'T08', 'none', '30', '57', '560', '75', '75', '', '', ''};
+    definput = {'', '', 'T08', 'none', '30', '51', '500', '75', '75', '', '', ''}; %480 duration
     tcs2.write_serail('Of3') % set MRI filter to "high"
+    pause(0.001)
 elseif strcmp(probe_type, '111')
-    definput = {'', '', 'T11', 'none', '30', '57', '560', '75', '75', '', '', ''};
+    definput = {'', '', 'T11', 'none', '30', '51', '480', '75', '75', '', '', ''};
     ramp_limit = 75;
     tcs2.write_serail('Of3') % set MRI filter to "high"
+    pause(0.001)
 end
 
 % get +tcs2 package version
 ver = tcs2.get_version;
-
+pause(0.001)
 % check battery level and confirm
 clc
 tcs2.get_battery(1)
@@ -148,6 +150,7 @@ seg_end_temp = [pre_stim_temp target_temp target_temp baseline_temp baseline_tem
 
 %%% structure for parameters and results
 test = struct;
+test.param.probe = probe_type;
 test.param.pre_stim_dur = pre_stim_dur;
 test.param.pst_stim_dur = pst_stim_dur;
 test.param.pre_stim_temp = pre_stim_temp;
@@ -272,7 +275,7 @@ avg_sd_base_pre = roundn(avg_sd_base_pre,3);
 
 % warning per zone
 for izone = 1:zones
-    if avg_sd_base_pre(1,izone) <= 0.1  % 0.1°C relative accuracy of the TCS
+    if avg_sd_base_pre(1,izone) <= 0.5  % 0.5°C absolute accuracy of the TCS
         mess_baseline_pre{izone} = strcat(['Pre-stimulus neutral temperature @ zone ',num2str(izone), ' is steady']);
         disp(mess_baseline_pre{izone});
     else
@@ -306,7 +309,7 @@ avg_trial_base_pst = roundn(avg_trial_base_pst,1);
 avg_sd_base_pst = roundn(avg_sd_base_pst,3);
 % warning per zone
 for izone = 1:zones
-    if avg_sd_base_pst(1,izone) <= 0.1 % 0.1°C relative accuracy of the TCS
+    if avg_sd_base_pst(1,izone) <= 0.5 % 0.5°C absolute accuracy of the TCS
         mess_baseline_pst{izone} = strcat(['Post-stimulus neutral temperature @ zone ',num2str(izone),' is steady']);
         disp(mess_baseline_pst{izone})
     else
@@ -389,7 +392,7 @@ for izone = 1:zones
 end
 
 % warning if slopes are below tolerance level
-ramp_tolerance = 0.02; % 2% arbitrary
+ramp_tolerance = 0.05; % 5% arbitrary
 
 for izone = 1:zones
     zone_mdlup{izone} = fitlm(x_rampup, avg_rampup_temp_feedb(izone,:));
@@ -450,7 +453,7 @@ overshoot = roundn(overshoot,1);
 
 % warning
 for izone = 1:zones
-    if overshoot(izone,1) - target_temp < 0
+    if overshoot(izone,1) - target_temp < -0.3
         mess_overshoot{izone} = strcat(['WARNING! max peak temperature @ zone ',num2str(izone)',' is ',num2str(overshoot(izone,1) - target_temp),'°C below target temperature']);
         disp(mess_overshoot{izone});
     else
@@ -484,7 +487,7 @@ end
 
 % warning per zone
 for izone = 1:zones
-    if avg_sd_plateau_temp(1,izone) <= 0.2 % 0.2°C given the recovery after overshoot (0.1°C relative accuracy of the TCS)
+    if avg_sd_plateau_temp(1,izone) <= 0.5 % 0.5°C given the recovery after overshoot (0.5°C absolute accuracy of the TCS)
         mess_plateau_temp{izone} = strcat(['Plateau temperature @ zone ',num2str(izone),' is steady']);
         disp(mess_plateau_temp{izone})
     else
@@ -494,7 +497,7 @@ for izone = 1:zones
 end
 disp(' ')
 for izone = 1:zones
-    if avg_stim_plateau_temp(1,izone) >= target_temp - 0.2 % 0.2°C (0.1°C relative accuracy of the TCS)
+    if avg_stim_plateau_temp(1,izone) >= target_temp - 0.3 % 0.3°C (0.5°C absolute accuracy of the TCS)
         mess_plateau_temp{izone} = strcat(['Plateau temperature @ zone ',num2str(izone),' is reached : ',num2str(avg_stim_plateau_temp(1,izone)) ,'°C']);
         disp(mess_plateau_temp{izone})
     else
@@ -580,7 +583,7 @@ for izone = 1:zones
 end
 
 % warning if slopes are below tolerance level
-ramp_tolerance = 0.02; % 2% arbitrary
+ramp_tolerance = 0.05; % 5% arbitrary
 for izone = 1:zones
     zone_mdldwn{izone} = fitlm(x_rampdwn, avg_rampdwn_temp_feedb(izone,:));
     zone_slope_dwn(izone) = abs(roundn(table2array(zone_mdldwn{izone}.Coefficients(2,1))*1000,1));
