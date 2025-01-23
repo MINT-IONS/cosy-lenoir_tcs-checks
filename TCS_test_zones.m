@@ -52,9 +52,11 @@ if strcmp(probe_type, '003')
 elseif strcmp(probe_type, '109')
     ramp_limit = 75;
     definput = {'', '', 'T08', 'none', '30', '57', '560', '75', '75', '', '', ''};
+    tcs2.write_serail('Of3') % set MRI filter to "high"
 elseif strcmp(probe_type, '111')
     definput = {'', '', 'T11', 'none', '30', '57', '560', '75', '75', '', '', ''};
     ramp_limit = 75;
+    tcs2.write_serail('Of3') % set MRI filter to "high"
 end
 
 % get +tcs2 package version
@@ -216,7 +218,7 @@ for istim = 1:stim_number
     pause(1.5)
     tcs2.stimulate
     disp(strcat(['stimulation #',num2str(istim),' /',num2str(stim_number),' sent'])) 
-    pause(1)
+    pause(1.5)
     if istim < 10
         disp('MOVE the probe for next stimulus')
     elseif istim > 9
