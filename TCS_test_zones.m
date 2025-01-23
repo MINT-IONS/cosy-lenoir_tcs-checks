@@ -136,6 +136,13 @@ if isnan(duration)
     duration = rise_time + plateau_time;
 else
 end
+% add pre and post stimulus periods of 100 ms
+pre_stim_dur = 100;
+pst_stim_dur = 100;
+pre_stim_temp = baseline_temp;
+seg_duration = [pre_stim_dur rise_time plateau_time down_time pst_stim_dur];
+seg_end_temp = [pre_stim_temp target_temp target_temp baseline_temp baseline_temp];
+
 
 %%% structure for parameters and results
 test = struct;
@@ -151,13 +158,6 @@ test.param.ramp_down = ramp_down;
 test.param.rise_time = rise_time;
 test.param.plateau_time = plateau_time;
 test.param.fall_time = down_time;
-
-% add pre and post stimulus periods of 100 ms
-pre_stim_dur = 100;
-pst_stim_dur = 100;
-pre_stim_temp = baseline_temp;
-seg_duration = [pre_stim_dur rise_time plateau_time down_time pst_stim_dur];
-seg_end_temp = [pre_stim_temp target_temp target_temp baseline_temp baseline_temp];
 
 
 %%% create paths to save outcomes in .mat and .txt files
