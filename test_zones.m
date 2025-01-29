@@ -1,4 +1,4 @@
-% tcs2.TCS_test-zones.m  performs the quick routine check of the device.
+% tcs2.test_zones performs the quick routine check of the device.
 % Results are saved in a structure in a .mat file and a summary of parameters and results are saved in a .txt file.
 % Both files are then stored in an archive .zip file in the folder of your choice. 
 % 
@@ -24,7 +24,7 @@
 % Cédric Lenoir, MINT, IoNS, UCLouvain, January 2025
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function TCS_test_zones
+function test_zones
 
 %%% TCS communication
 TCS_COM = tcs2.find_com_port;
@@ -205,7 +205,6 @@ pause(0.001)
 
 
 %%% loop to send stimuli
-
 % prepare for storing of temperature data for 5 zones and successive 10 stimulations
 temperature_feedback = cell(stim_number,zones);
 
@@ -621,8 +620,7 @@ for izone = 1:zones
     fidLog = fopen(fullfile(savePath,txt_filename),'a+');
     fprintf(fidLog,'\n %s',mess_baseline_pst{izone});
 end
-fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-fprintf(fidLog,'\n');
+fprintf(fidLog,'\n Highest variablility at zone %d \n',zone_pst);
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n ramp up:');
@@ -630,8 +628,7 @@ for izone = 1:zones
     fidLog = fopen(fullfile(savePath,txt_filename),'a+');
     fprintf(fidLog,'\n %s',mess_rampup{izone});
 end
-fidLog = fopen(fullfile(savePath,txt_filename),'a+');
-fprintf(fidLog,'\n');
+fprintf(fidLog,'\n Highest variablility at zone %d \n',max_std_zone_up);
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n overshoot:');
@@ -648,6 +645,8 @@ for izone = 1:zones
     fidLog = fopen(fullfile(savePath,txt_filename),'a+');
     fprintf(fidLog,'\n %s',mess_rampdwn{izone});
 end
+fprintf(fidLog,'\n Highest variablility at zone %d \n',max_std_zone_dwn);
+
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n');
 
