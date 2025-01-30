@@ -48,21 +48,21 @@ probe_type = serial_number(end-2:end);
 % set the ramp-up and -down limit dependong on the probe
 if strcmp(probe_type, '003')
     ramp_limit = 300;
-    definput = {'', '', 'T03', 'none', '30', '60', '', '', '', '100', '200', '100'};
+    definput = {'', '', '', 'none', '30', '60', '', '', '', '100', '200', '100'};
 elseif strcmp(probe_type, '109')
     ramp_limit = 75;
-    definput = {'', '', 'T08', 'none', '30', '51', '500', '75', '75', '', '200', ''}; %480 duration
+    definput = {'', '', '', 'none', '30', '50', '900', '50', '50', '', '500', ''};
 %     tcs2.write_serial('Of3') % set MRI filter to "high"
     pause(0.001)
 elseif strcmp(probe_type, '111')
-    definput = {'', '', 'T11', 'none', '30', '50', '600', '50', '50', '', '200', ''};
+    definput = {'', '', '', 'none', '30', '50', '900', '50', '50', '', '500', ''};
     ramp_limit = 75;
 %     tcs2.write_serial('Of3') % set MRI filter to "high"
     pause(0.001)
 end
 
 % get +tcs2 package version
-ver = tcs2.get_version;
+tcs2_ver = tcs2.get_version;
 pause(0.001)
 % check battery level and confirm
 clc
@@ -111,6 +111,15 @@ zones = 5;
 % local function roundn for round to be compatible with all Matlab versions
 roundn = @(x,n) round(x.*10.^n)./10.^n;
 
+% warning message if missing argument
+if isnan(rise_time) && isnan(ramp_up)
+    error('Missing arguments, specify at least rise time or heating ramp!')
+else
+end
+if isnan(duration) && isnan(plateau_time)
+    error('Missing arguments, specify at least duration (=rise time + plateau) or plateau time!')
+else
+end
 % compute the different durations of the stimulation segments 
 if isnan(rise_time)
     rise_time = abs((target_temp-baseline_temp))/(ramp_up/1000);
@@ -122,7 +131,7 @@ elseif ~isnan(rise_time)
         return
     end
 end
-if isnan(plateau_time) && ~isnan(duration)
+if isnan(plateau_time)
     plateau_time = duration - rise_time;
 else
 end
@@ -142,7 +151,7 @@ else
 end
 % add pre and post stimulus periods of 100 ms
 pre_stim_dur = 100;
-pst_stim_dur = 1000;
+pst_stim_dur = 500;
 pre_stim_temp = baseline_temp;
 seg_duration = [pre_stim_dur rise_time plateau_time down_time pst_stim_dur];
 seg_end_temp = [pre_stim_temp target_temp target_temp baseline_temp baseline_temp];
@@ -220,8 +229,9 @@ for istim = 1:stim_number
     pause(1.5)
     tcs2.stimulate
     disp(strcat(['stimulation #',num2str(istim),' /',num2str(stim_number),' sent'])) 
-    pause((duration+down_time+pre_stim_dur+pst_stim_dur)/1000)
+    pause((duration+down_time+pre_stim_dur+pst_stim_dur+500)/1000)
     if istim < 10
+        clc
         disp('MOVE the probe for next stimulus')
     elseif istim > 9
         disp('Stimulations done! Results will appear...')
@@ -603,7 +613,7 @@ disp(' ')
 
 %%% write param in text file
 fidLog = fopen(fullfile(savePath,txt_filename),'w');
-fprintf(fidLog,'TEST: %s \n\nPackage version: %s \n\nDate and time: %s \n\nUser name: %s \n\nTCS: %s \n\nProbe name: %s \n\n%s \n\nBaseline temperature: %s°C \n\nTarget temperature: %s°C \n\nRamp-up speed: %s°C/s \n\nRamp-down: %s°C/s \n\nNotes: %s \n\n',...
+fprintf(fidLog,'TEST: %s \nPackage version: %s \nDate and time: %s \nUser name: %s \n\nTCS: %s \nProbe name: %s \n\n%s \n\nBaseline temperature: %s°C \nTarget temperature: %s°C \nRamp-up speed: %s°C/s \nRamp-down: %s°C/s \n\nNotes: %s \n\n',...
     experiment, ver, timestamp, user_name, TCS_name, probe_name, serial_number, num2str(baseline_temp), num2str(target_temp), num2str(ramp_up), num2str(ramp_down), char(comments));
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
@@ -638,6 +648,14 @@ for izone = 1:zones
 end
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n');
+
+fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+fprintf(fidLog,'\n plateau:');
+for izone = 1:zones
+    fidLog = fopen(fullfile(savePath,txt_filename),'a+');
+    fprintf(fidLog,'\n %s',mess_plateau_temp{izone});
+end
+fprintf(fidLog,'\n Highest variablility at zone %d \n',zone_plat);
 
 fidLog = fopen(fullfile(savePath,txt_filename),'a+');
 fprintf(fidLog,'\n ramp down:');
